@@ -2,7 +2,7 @@ import { authed, json } from "./_lib.mjs";
 
 let cache = null, cacheTime = 0;
 const CACHE_MS = 15 * 60_000;
-const FEED_URL = "https://rss.cnn.com/rss/cnn_topstories.rss";
+const FEED_URL = "https://feeds.bbci.co.uk/news/rss.xml";
 
 function tagContent(block, tag) {
   const m = block.match(new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)</${tag}>`, "i"));

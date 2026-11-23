@@ -13,7 +13,12 @@ export const authed = (req) => verify((req.headers.get("cookie") || "").match(/(
 export const json = (o, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { "content-type": "application/json", "cache-control": "no-store" } });
 export const store = () => getStore("board");
 export const DEFAULTS = {
-  calendars: [],
+  calendars: [
+    { name: "Dylan", emoji: "🏃‍♂️", color: "#4fc3b8", url: "" },
+    { name: "Brooke", emoji: "🐕", color: "#f48fb1", url: "" },
+    { name: "Indoor Soccer", emoji: "🏟️", color: "#ffd166", url: "" },
+    { name: "Outdoor Soccer", emoji: "⚽", color: "#8bd17c", url: "" }
+  ],
   tickers: ["ABNB","AMZN","BRK.B","DIS","DXCM","IDXX","NET","NFLX","NVDA","PYPL","ROKU","SHOP","SPOT","TSLA","VOO","ZM"],
   countdowns: [{ name: "Christmas", date: "2026-12-25" }, { name: "Big Powderhorn Skiing", date: "2027-01-21" }, { name: "Noah Kahan Concert", date: "2027-05-26" }]
 };

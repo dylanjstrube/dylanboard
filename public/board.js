@@ -45,9 +45,58 @@ async function loadCal() {
   });
   g("cal").innerHTML = h;
 }
+function drawSparkline(id, data) {
+  if (!data || data.length < 2) return;
+  const mn = Math.min(...data), mx = Math.max(...data);
+  if (mn === mx) return;
+  const pts = data.map((v, i) =>
+    `${(i / (data.length - 1) * 200).toFixed(1)},${(55 - (v - mn) / (mx - mn) * 50).toFixed(1)}`
+  ).join(" ");
+  g(id).innerHTML = `<polyline fill="none" stroke="#5fd38d" stroke-width="2" points="${pts}"/>`;
+}
+
+async function loadWeather() {
+  const w = await api("/api/weather");
+  g("wx-temp").textContent = w.temp + "°";
+  g("wx-cond").textContent = `Feels like ${w.feels}° · ${w.desc}`;
+  g("days").innerHTML = w.forecast.map((d) =>
+    `<div><b>${esc(d.day)}</b><div class="i">${d.icon}</div><div class="p">💧${d.precip}%</div><div class="h"><b class="hi">${d.high}°</b>${d.low}°</div></div>`
+  ).join("");
+  g("wx-sunset").textContent   = w.sunset;
+  g("wx-moon").textContent     = w.moon;
+  g("wx-wind").textContent     = w.wind;
+  g("wx-humidity").textContent = w.humidity;
+  g("wx-pressure").textContent = w.pressure;
+  g("wx-vis").textContent      = w.visibility;
+}
+
+async function loadStocks() {
+  const d = await api("/api/stocks");
+  if (d.quotes && d.quotes.length) {
+    g("stocks").innerHTML = d.quotes.map((q) => {
+      const up = q.pct != null && q.pct >= 0;
+      const pct = q.pct != null
+        ? `<i style="color:var(${up ? "--up" : "--dn"})">${up ? "▲" : "▼"} ${Math.abs(q.pct).toFixed(1)}%</i>`
+        : "";
+      return `<div>${esc(q.symbol)}${pct}<b>${q.price != null ? q.price.toFixed(2) : "—"}</b></div>`;
+    }).join("");
+  }
+  if (d.sp) {
+    const up = d.sp.pct >= 0;
+    g("sp-px").innerHTML =
+      `${d.sp.price.toFixed(2)} <span style="font-size:20px;color:var(${up ? "--up" : "--dn"})">${up ? "+" : ""}${d.sp.pct.toFixed(2)}%</span>`;
+    drawSparkline("s7", d.sp.chart7);
+    drawSparkline("s1", d.sp.chart1y);
+  }
+  setTimeout(() => safe(loadStocks), d.marketOpen ? 60_000 : 30 * 60_000);
+}
+
 tick(); setInterval(tick, 1000);
 const safe = (f) => f().catch(() => {});
 safe(loadConfig).then(() => safe(loadCal));
 setInterval(() => safe(loadConfig), 6e5);
 setInterval(() => safe(loadCal), 6e5);
+safe(loadWeather);
+setInterval(() => safe(loadWeather), 6e5);
+safe(loadStocks);
 })();

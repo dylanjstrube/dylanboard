@@ -55,13 +55,13 @@ h4{font-size:15px;letter-spacing:2px;text-transform:uppercase;color:var(--mut);m
 <div id="stage">
  <div class="row top">
   <div class="card"><div class="clock" id="clk">9:23<small> AM</small></div><div class="date">Sunday, November 22</div></div>
-  <div class="card wx"><div><div class="t">52°</div><div class="c">Feels like 42 · Rain</div></div>
+  <div class="card wx"><div><div class="t" id="wx-temp">--°</div><div class="c" id="wx-cond">Loading…</div></div>
    <div class="days" id="days"></div></div>
  </div>
  <div class="row mid">
   <div class="card"><h4>To Do</h4><ul class="todo" id="todo"></ul></div>
   <div class="right">
-   <div class="card"><div class="facts"><div><span>SUNSET</span>4:24 pm</div><div><span>MOON</span>Waxing gibbous</div><div><span>WIND</span>13 mph W</div><div><span>HUMIDITY</span>93%</div><div><span>PRESSURE</span>29.814</div><div><span>VISIBILITY</span>3.8 mi</div></div></div>
+   <div class="card"><div class="facts"><div><span>SUNSET</span><b id="wx-sunset">--</b></div><div><span>MOON</span><b id="wx-moon">--</b></div><div><span>WIND</span><b id="wx-wind">--</b></div><div><span>HUMIDITY</span><b id="wx-humidity">--</b></div><div><span>PRESSURE</span><b id="wx-pressure">--</b></div><div><span>VISIBILITY</span><b id="wx-vis">--</b></div></div></div>
    <div class="card th"><div>69°<span>1ST FLOOR</span><em class="ht">🔥 HEATING</em></div><div>70°<span>2ND FLOOR</span><em class="idle">IDLE</em></div></div>
   </div>
  </div>
@@ -70,7 +70,7 @@ h4{font-size:15px;letter-spacing:2px;text-transform:uppercase;color:var(--mut);m
  <div class="row bot">
   <div class="card tile"><h4>Photos</h4><div class="ph" style="background:linear-gradient(160deg,#f7b267,#c0576b 55%,#3b3a6b)">Shared iCloud album</div></div>
   <div class="card tile"><h4>Front Door</h4><div class="ph" style="background:linear-gradient(160deg,#35505f,#1b2b36)">Blink · updated 9:00 AM</div></div>
-  <div class="card sp"><h4>S&amp;P 500</h4><div class="px">6,603.12 <span style="font-size:20px;color:var(--up)">+0.4%</span></div><small>7 DAYS</small><svg id="s7" viewBox="0 0 200 60" preserveAspectRatio="none"></svg><small>1 YEAR</small><svg id="s1" viewBox="0 0 200 60" preserveAspectRatio="none"></svg></div>
+  <div class="card sp"><h4>S&amp;P 500</h4><div class="px" id="sp-px">-- <span style="font-size:20px;color:var(--mut)">--%</span></div><small>7 DAYS</small><svg id="s7" viewBox="0 0 200 60" preserveAspectRatio="none"></svg><small>1 YEAR</small><svg id="s1" viewBox="0 0 200 60" preserveAspectRatio="none"></svg></div>
   <div class="card news"><h4>CNN</h4><p>Sample headline one goes here</p><p>Sample headline two goes here and wraps</p><p>Sample headline three</p><p>Sample headline four</p></div>
  </div>
 </div>
@@ -78,10 +78,7 @@ h4{font-size:15px;letter-spacing:2px;text-transform:uppercase;color:var(--mut);m
 const $=id=>document.getElementById(id);
 function fit(){const s=Math.min(innerWidth/1080,innerHeight/1920);$('stage').style.transform='translateX(-50%) scale('+s+')'}
 addEventListener('resize',fit);fit();
-$('days').innerHTML=[['Today','🌧','100%','58°/33°'],['Mon','⛅','0%','37°/25°'],['Tue','☁️','8%','35°/21°'],['Wed','🌧','34%','40°/28°'],['Thu','🌧','94%','41°/35°']].map(d=>`<div><b>${d[0]}</b><div class="i">${d[1]}</div><div class="p">💧${d[2]}</div><div class="h"><b class="hi">${d[3].split('/')[0]}</b>${d[3].split('/')[1]}</div></div>`).join('');
 $('todo').innerHTML=['Golden retriever Lego','Change auto and home insurance','Sell sticks','Duplex sewer','South door seal','Shower door seal','Paint island'].map(t=>`<li>${t}</li>`).join('');
-const st=[['ABNB',170.36],['AMZN',246.82],['BRK.B',570],['CFLT',30.99],['DIS',117.98],['DOCN',66.76],['DOCJ',74.56],['DXCM',79.32],['IDXX',676.21],['NET',274.96],['NFLX',56.73],['NVDA',125.53],['PYPL',53.29],['RMD',235.63],['ROKU',160.82],['SHOP',123.72],['SPOT',577.03],['TEAM',134.65],['TSLA',345.82],['TTD',13.38],['TYL',404.44],['VEEV',266.22],['VOO',635.54],['ZM',81.26]];
-$('stocks').innerHTML=st.slice(0,16).map((s,i)=>{const c=((i*37%19)-9)/10;return`<div>${s[0]}<i style="color:${c>=0?'var(--up)':'var(--dn)'}">${c>=0?'▲':'▼'} ${Math.abs(c).toFixed(1)}%</i><b>${s[1].toFixed(2)}</b></div>`}).join('');
 const cals=[['Dylan','🏃‍♂️','#4fc3b8'],['Brooke','🐕','#f48fb1'],['Indoor Soccer','🏟️','#ffd166'],['Outdoor Soccer','⚽','#8bd17c']];
 $('legend').innerHTML=cals.map(c=>`<span style="--c:${c[2]}">${c[1]} ${c[0]}</span>`).join('');
 const ev={0:[[0,'Estimate: Lake Dr'],[2,'3p Game']],1:[[1,'Dentist']],2:[[2,'6p Practice']],4:[[3,'10a Game']],5:[[3,'11a Game']],10:[[2,'Practice']],12:[[0,'Deck consult'],[1,'Book club']],20:[[0,'Install day']],24:[[1,'Brunch']],25:[[3,'Tournament']]};
@@ -89,8 +86,6 @@ let h=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="hd">${d}</
 const s0=new Date(2026,10,22);
 for(let i=0;i<35;i++){const d=new Date(s0);d.setDate(d.getDate()+i);h+=`<div class="d ${i?'':'today'}"><span class="n">${i&&d.getDate()>1?d.getDate():(i?d.toLocaleString('en',{month:'short'})+' 1':'Nov 22')}</span>${(ev[i]||[]).map(e=>`<span class="ev" style="--c:${cals[e[0]][2]}">${cals[e[0]][1]} ${e[1]}</span>`).join('')}</div>`}
 $('cal').innerHTML=h;
-function spark(id,n,seed,up){let v=50,p=[];for(let i=0;i<n;i++){v+=Math.sin(i*seed)*5+(up?.6:.1);p.push(v)}const mn=Math.min(...p),mx=Math.max(...p);$(id).innerHTML=`<polyline fill="none" stroke="#5fd38d" stroke-width="2" points="${p.map((y,i)=>(i/(n-1)*200).toFixed(1)+','+(55-(y-mn)/(mx-mn)*50).toFixed(1)).join(' ')}"/>`}
-spark('s7',40,.7,0);spark('s1',120,.35,1);
 $('cds').innerHTML=[['Christmas',new Date(2026,11,25)],['Big Powderhorn Skiing',new Date(2027,0,21)],['Noah Kahan Concert',new Date(2027,4,26)]].map(c=>`<div class="cdr"><span>${c[0]}</span><span><b>${Math.round((c[1]-s0)/864e5)}</b><small>DAYS</small></span></div>`).join('');
 </script>
 <script src="/board.js"></script>

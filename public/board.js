@@ -13,7 +13,7 @@ function tick() {
 }
 async function loadConfig() {
   cfg = await api("/api/config");
-  g("legend").innerHTML = cfg.calendars.map((c) => `<span style="--c:${esc(c.color)}">${esc(c.emoji)} ${esc(c.name)}${c.url ? "" : " <small style='opacity:.5'>(no URL)</small>"}</span>`).join("");
+  g("legend").innerHTML = cfg.calendars.map((c) => `<span style="--c:${esc(c.color)}">${esc(c.emoji)} ${esc(c.name)}${c.hasUrl === false ? " <small style='opacity:.5'>(no URL)</small>" : ""}</span>`).join("");
   const t0 = day0(new Date());
   g("cds").innerHTML = cfg.countdowns.filter((c) => c.name && c.date).map((c) =>
     `<div class="cdr"><span>${esc(c.name)}</span><span><b>${Math.max(0, Math.round((pd(c.date) - t0) / 864e5))}</b><small>DAYS</small></span></div>`).join("");

@@ -3,7 +3,7 @@ export default async (req) => {
   if (!authed(req)) return json({ error: "auth" }, 401);
   if (req.method === "GET") {
     const c = await getConfig();
-    if (!new URL(req.url).searchParams.has("admin")) c.calendars = c.calendars.map(({ url, ...x }) => x);
+    if (!new URL(req.url).searchParams.has("admin")) c.calendars = c.calendars.map(({ url, ...x }) => ({ ...x, hasUrl: !!url }));
     return json(c);
   }
   if (req.method === "PUT") {

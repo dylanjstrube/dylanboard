@@ -109,6 +109,18 @@ async function loadHeadlines() {
 safe(loadWeather);
 setInterval(() => safe(loadWeather), 6e5);
 safe(loadStocks);
+async function loadTodos() {
+  const d = await api("/api/todos");
+  const el = g("todo");
+  if (!el) return;
+  if (d.tasks && d.tasks.length)
+    el.innerHTML = d.tasks.map((t) => `<li>${esc(t)}</li>`).join("");
+  else if (!d.noKey)
+    el.innerHTML = `<li style="opacity:.5">No tasks</li>`;
+}
+
 safe(loadHeadlines);
 setInterval(() => safe(loadHeadlines), 15 * 60_000);
+safe(loadTodos);
+setInterval(() => safe(loadTodos), 5 * 60_000);
 })();

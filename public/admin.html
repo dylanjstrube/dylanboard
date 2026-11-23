@@ -1,0 +1,22 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DylanBoard admin</title>
+<style>body{font:16px system-ui;background:#0b1730;color:#eef3f8;max-width:780px;margin:24px auto;padding:0 16px}h2{margin-top:28px}input,button,textarea{font:inherit;padding:8px;border-radius:8px;border:1px solid #345;background:#12233d;color:inherit}.r{display:flex;gap:6px;margin:6px 0;flex-wrap:wrap}button{cursor:pointer;background:#4fc3b8;color:#06121f;border:0;font-weight:600}input[type=color]{padding:0;width:44px}small{color:#9fb2c6}</style>
+<h1>DylanBoard admin</h1><div id="app">Loading…</div>
+<script>
+let C;const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const q=s=>[...document.querySelectorAll(s)];
+async function init(){const r=await fetch('/api/config?admin');if(r.status===401){location='/login.html';return}C=await r.json();render()}
+function render(){$('app').innerHTML=`<h2>Calendars (up to 5)</h2><small>Paste each calendar’s iCal link: Google’s “Secret address in iCal format”, or an iCloud public (webcal://) link.</small>`
++C.calendars.map((c,i)=>`<div class="r"><input class="e" size="3" value="${esc(c.emoji)}"><input class="n" size="14" placeholder="Name" value="${esc(c.name)}"><input class="c" type="color" value="${esc(c.color)}"><input class="u" style="flex:1;min-width:220px" placeholder="https://… or webcal://…" value="${esc(c.url||'')}"><button onclick="del(${i})">Remove</button></div>`).join('')
++(C.calendars.length<5?`<button onclick="add()">Add calendar</button>`:'')
++`<h2>Stock tickers (up to 16)</h2><textarea id="t" rows="3" style="width:100%">${esc(C.tickers.join(', '))}</textarea><h2>Countdowns</h2>`
++[0,1,2].map(i=>{const x=C.countdowns[i]||{name:'',date:''};return `<div class="r"><input class="cn" placeholder="Name" value="${esc(x.name)}"><input class="cd" type="date" value="${esc(x.date)}"></div>`}).join('')
++`<p><button onclick="save()">Save changes</button> <span id="m"></span></p>`}
+function grab(){const e=q('.e'),n=q('.n'),c=q('.c'),u=q('.u'),a=q('.cn'),b=q('.cd');
+C.calendars=e.map((_,i)=>({emoji:e[i].value,name:n[i].value,color:c[i].value,url:u[i].value}));
+C.tickers=$('t').value.split(/[\s,]+/).filter(Boolean);C.countdowns=a.map((_,i)=>({name:a[i].value,date:b[i].value}))}
+function add(){grab();C.calendars.push({name:'',emoji:'📅',color:'#4fc3b8',url:''});render()}
+function del(i){grab();C.calendars.splice(i,1);render()}
+async function save(){grab();const r=await fetch('/api/config',{method:'PUT',body:JSON.stringify(C)});if(r.status===401){location='/login.html';return}$('m').textContent=r.ok?'Saved. The board updates within 10 minutes.':'Save failed'}
+init();
+</script>

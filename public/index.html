@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DylanBoard</title>
+<style>
+:root{color-scheme:dark;--card:rgba(10,20,34,.62);--line:rgba(255,255,255,.14);--tx:#eef3f8;--mut:#9fb2c6;--up:#5fd38d;--dn:#ff7a7a;--acc:#4fc3b8}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;background:#050b14;overflow:hidden;font-family:"Inter","Segoe UI",system-ui,sans-serif;color:var(--tx)}
+#stage{position:absolute;left:50%;top:0;width:1080px;height:1920px;transform-origin:top center;padding:28px;
+background:radial-gradient(1200px 700px at 80% 100%,rgba(79,195,184,.28),transparent 60%),radial-gradient(900px 600px at 10% 0%,rgba(90,110,200,.25),transparent 60%),linear-gradient(180deg,#0b1730 0%,#0f2a40 55%,#143d4a 100%);
+display:grid;grid-template-rows:230px 300px 215px 700px 1fr;gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;backdrop-filter:blur(6px);overflow:hidden}
+.row{display:grid;gap:16px;min-height:0}
+.top{grid-template-columns:.85fr 1.55fr}
+.clock{font-size:104px;font-weight:300;line-height:1;letter-spacing:-3px}
+.clock small{font-size:38px;color:var(--mut);letter-spacing:0}
+.date{font-size:30px;color:var(--mut);margin-top:10px}
+.wx{display:grid;grid-template-columns:190px 1fr;gap:12px;align-items:center}
+.wx .t{font-size:72px;font-weight:300}.wx .c{font-size:24px;color:var(--mut)}
+.days{display:grid;grid-template-columns:repeat(5,1fr);text-align:center;font-size:21px;gap:4px}
+.days b{display:block;font-weight:600;margin-bottom:4px}.days .i{font-size:34px}.days .p{color:#7cc4ff;font-size:18px}.days .h{color:var(--mut);font-size:18px}
+.mid{grid-template-columns:1fr 1fr}.days .hi{display:block;margin:0;font-size:24px;color:var(--tx);font-weight:600}.days .h{font-size:21px;line-height:1.25}
+h4{font-size:15px;letter-spacing:2px;text-transform:uppercase;color:var(--mut);margin-bottom:10px;font-weight:600}
+.todo li{list-style:none;font-size:24px;padding:3px 0;display:flex;gap:12px;align-items:center}
+.todo li:before{content:"";width:18px;height:18px;border:2px solid var(--mut);border-radius:4px}
+.cd{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px}
+.cd div{background:rgba(255,255,255,.07);border-radius:10px;text-align:center;padding:6px;font-size:36px}
+.cd span{display:block;font-size:13px;color:var(--mut);letter-spacing:2px}
+.right{display:grid;grid-template-rows:auto 1fr;gap:16px;min-height:0}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:20px}.facts span{color:var(--mut);display:block;font-size:14px}
+.th{display:flex;justify-content:space-around;align-items:center;font-size:62px;font-weight:300;text-align:center}
+.th span{display:block;font-size:16px;color:var(--mut);letter-spacing:2px}
+.stocks{display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,1fr);gap:4px 8px;padding:10px 14px}
+.stocks div{font-size:13px;color:var(--mut);line-height:1.15}.stocks b{display:block;font-size:19px;color:var(--tx);font-weight:500}.stocks i{font-style:normal;font-size:11px;margin-left:4px}
+.cal{display:flex;flex-direction:column;padding:14px}
+.legend{display:flex;gap:18px;font-size:18px;color:var(--mut);margin-bottom:8px;flex-wrap:wrap}
+.legend span:before{content:"";display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--c);margin-right:6px}
+.grid{flex:1;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:auto repeat(5,1fr);gap:4px}
+.hd{font-size:16px;color:var(--mut);border-bottom:1px solid var(--line);padding-bottom:3px}
+.d{border-top:1px solid var(--line);padding:3px 2px;overflow:hidden;font-size:14px;min-width:0}
+.d .n{font-size:17px;color:var(--mut)}.d.today .n{background:#fff;color:#0b1730;border-radius:10px;padding:0 8px;font-weight:700}
+.ev{display:block;background:var(--c);border-radius:4px;padding:1px 5px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#07121f;font-weight:600}
+.bot{grid-template-columns:repeat(4,1fr)}
+.tile{padding:0;position:relative;display:flex;flex-direction:column}
+.ph{flex:1;display:flex;align-items:flex-end;padding:14px;font-size:17px;color:#fff;text-shadow:0 1px 4px #000}
+.tile h4{position:absolute;top:12px;left:14px;z-index:2;margin:0;color:#fff;text-shadow:0 1px 4px #000}
+.sp{padding:16px}.sp .px{font-size:44px;font-weight:500}.sp svg{width:100%;height:92px;display:block}.sp small{color:var(--mut);font-size:13px}
+.news{padding:16px;font-size:18px;line-height:1.3}.news p{padding:6px 0;border-bottom:1px solid var(--line)}.news p:last-child{border:0}
+.ht,.idle{display:block;font-style:normal;font-size:16px;font-weight:600;letter-spacing:2px;margin-top:6px;color:#ff9f5a}.idle{color:var(--mut);font-weight:400}.cdw{display:flex;flex-direction:column;padding:14px 18px}.cdr{flex:1;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);font-size:24px}.cdr b{font-size:46px;font-weight:300}.cdr small{font-size:13px;color:var(--mut);letter-spacing:2px;margin-left:6px}
+</style>
+</head>
+<body>
+<div id="stage">
+ <div class="row top">
+  <div class="card"><div class="clock" id="clk">9:23<small> AM</small></div><div class="date">Sunday, November 22</div></div>
+  <div class="card wx"><div><div class="t">52°</div><div class="c">Feels like 42 · Rain</div></div>
+   <div class="days" id="days"></div></div>
+ </div>
+ <div class="row mid">
+  <div class="card"><h4>To Do</h4><ul class="todo" id="todo"></ul></div>
+  <div class="right">
+   <div class="card"><div class="facts"><div><span>SUNSET</span>4:24 pm</div><div><span>MOON</span>Waxing gibbous</div><div><span>WIND</span>13 mph W</div><div><span>HUMIDITY</span>93%</div><div><span>PRESSURE</span>29.814</div><div><span>VISIBILITY</span>3.8 mi</div></div></div>
+   <div class="card th"><div>69°<span>1ST FLOOR</span><em class="ht">🔥 HEATING</em></div><div>70°<span>2ND FLOOR</span><em class="idle">IDLE</em></div></div>
+  </div>
+ </div>
+ <div class="row" style="grid-template-columns:1fr 1fr"><div class="card stocks" id="stocks"></div><div class="card cdw"><h4>Countdowns</h4><div id="cds" style="flex:1;display:flex;flex-direction:column"></div></div></div>
+ <div class="card cal"><div class="legend" id="legend"></div><div class="grid" id="cal"></div></div>
+ <div class="row bot">
+  <div class="card tile"><h4>Photos</h4><div class="ph" style="background:linear-gradient(160deg,#f7b267,#c0576b 55%,#3b3a6b)">Shared iCloud album</div></div>
+  <div class="card tile"><h4>Front Door</h4><div class="ph" style="background:linear-gradient(160deg,#35505f,#1b2b36)">Blink · updated 9:00 AM</div></div>
+  <div class="card sp"><h4>S&amp;P 500</h4><div class="px">6,603.12 <span style="font-size:20px;color:var(--up)">+0.4%</span></div><small>7 DAYS</small><svg id="s7" viewBox="0 0 200 60" preserveAspectRatio="none"></svg><small>1 YEAR</small><svg id="s1" viewBox="0 0 200 60" preserveAspectRatio="none"></svg></div>
+  <div class="card news"><h4>CNN</h4><p>Sample headline one goes here</p><p>Sample headline two goes here and wraps</p><p>Sample headline three</p><p>Sample headline four</p></div>
+ </div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+function fit(){const s=Math.min(innerWidth/1080,innerHeight/1920);$('stage').style.transform='translateX(-50%) scale('+s+')'}
+addEventListener('resize',fit);fit();
+$('days').innerHTML=[['Today','🌧','100%','58°/33°'],['Mon','⛅','0%','37°/25°'],['Tue','☁️','8%','35°/21°'],['Wed','🌧','34%','40°/28°'],['Thu','🌧','94%','41°/35°']].map(d=>`<div><b>${d[0]}</b><div class="i">${d[1]}</div><div class="p">💧${d[2]}</div><div class="h"><b class="hi">${d[3].split('/')[0]}</b>${d[3].split('/')[1]}</div></div>`).join('');
+$('todo').innerHTML=['Golden retriever Lego','Change auto and home insurance','Sell sticks','Duplex sewer','South door seal','Shower door seal','Paint island'].map(t=>`<li>${t}</li>`).join('');
+const st=[['ABNB',170.36],['AMZN',246.82],['BRK.B',570],['CFLT',30.99],['DIS',117.98],['DOCN',66.76],['DOCJ',74.56],['DXCM',79.32],['IDXX',676.21],['NET',274.96],['NFLX',56.73],['NVDA',125.53],['PYPL',53.29],['RMD',235.63],['ROKU',160.82],['SHOP',123.72],['SPOT',577.03],['TEAM',134.65],['TSLA',345.82],['TTD',13.38],['TYL',404.44],['VEEV',266.22],['VOO',635.54],['ZM',81.26]];
+$('stocks').innerHTML=st.slice(0,16).map((s,i)=>{const c=((i*37%19)-9)/10;return`<div>${s[0]}<i style="color:${c>=0?'var(--up)':'var(--dn)'}">${c>=0?'▲':'▼'} ${Math.abs(c).toFixed(1)}%</i><b>${s[1].toFixed(2)}</b></div>`}).join('');
+const cals=[['Dylan','🏃‍♂️','#4fc3b8'],['Brooke','🐕','#f48fb1'],['Indoor Soccer','🏟️','#ffd166'],['Outdoor Soccer','⚽','#8bd17c']];
+$('legend').innerHTML=cals.map(c=>`<span style="--c:${c[2]}">${c[1]} ${c[0]}</span>`).join('');
+const ev={0:[[0,'Estimate: Lake Dr'],[2,'3p Game']],1:[[1,'Dentist']],2:[[2,'6p Practice']],4:[[3,'10a Game']],5:[[3,'11a Game']],10:[[2,'Practice']],12:[[0,'Deck consult'],[1,'Book club']],20:[[0,'Install day']],24:[[1,'Brunch']],25:[[3,'Tournament']]};
+let h=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="hd">${d}</div>`).join('');
+const s0=new Date(2026,10,22);
+for(let i=0;i<35;i++){const d=new Date(s0);d.setDate(d.getDate()+i);h+=`<div class="d ${i?'':'today'}"><span class="n">${i&&d.getDate()>1?d.getDate():(i?d.toLocaleString('en',{month:'short'})+' 1':'Nov 22')}</span>${(ev[i]||[]).map(e=>`<span class="ev" style="--c:${cals[e[0]][2]}">${cals[e[0]][1]} ${e[1]}</span>`).join('')}</div>`}
+$('cal').innerHTML=h;
+function spark(id,n,seed,up){let v=50,p=[];for(let i=0;i<n;i++){v+=Math.sin(i*seed)*5+(up?.6:.1);p.push(v)}const mn=Math.min(...p),mx=Math.max(...p);$(id).innerHTML=`<polyline fill="none" stroke="#5fd38d" stroke-width="2" points="${p.map((y,i)=>(i/(n-1)*200).toFixed(1)+','+(55-(y-mn)/(mx-mn)*50).toFixed(1)).join(' ')}"/>`}
+spark('s7',40,.7,0);spark('s1',120,.35,1);
+$('cds').innerHTML=[['Christmas',new Date(2026,11,25)],['Big Powderhorn Skiing',new Date(2027,0,21)],['Noah Kahan Concert',new Date(2027,4,26)]].map(c=>`<div class="cdr"><span>${c[0]}</span><span><b>${Math.round((c[1]-s0)/864e5)}</b><small>DAYS</small></span></div>`).join('');
+</script>
+<script src="/board.js"></script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DylanBoard login</title>
+<style>body{font:18px system-ui;background:#0b1730;color:#eef3f8;display:grid;place-items:center;height:100vh;margin:0}form{display:grid;gap:10px;width:260px}input,button{font:inherit;padding:10px;border-radius:8px;border:1px solid #345;background:#12233d;color:inherit}button{background:#4fc3b8;color:#06121f;border:0;font-weight:600;cursor:pointer}</style>
+<form onsubmit="go(event)"><input id="p" type="password" placeholder="Password" autofocus><button>Log in</button><span id="m"></span></form>
+<script>async function go(e){e.preventDefault();const r=await fetch('/api/login',{method:'POST',body:JSON.stringify({password:p.value})});if(r.ok)location='/';else m.textContent='Wrong password'}</script>

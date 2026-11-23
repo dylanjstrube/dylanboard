@@ -25,17 +25,17 @@ async function fetchQuote(symbol, key) {
   return v;
 }
 
-async function fetchCandles(symbol, resolution, fromSec, key) {
-  const cKey = symbol + resolution;
+// Yahoo Finance public API — no key needed, works for ETFs
+async function fetchYahooChart(symbol, interval, range) {
+  const cKey = symbol + interval + range;
   const c = candleCache.get(cKey);
   if (c && Date.now() - c.t < CANDLE_TTL) return c.data;
-  const to = Math.floor(Date.now() / 1000);
-  const r = await fetch(
-    `https://finnhub.io/api/v1/stock/candle?symbol=${encodeURIComponent(symbol)}&resolution=${resolution}&from=${fromSec}&to=${to}&token=${key}`
-  );
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${interval}&range=${range}`;
+  const r = await fetch(url, { headers: { "user-agent": "Mozilla/5.0" } });
   if (!r.ok) throw new Error("HTTP " + r.status);
   const d = await r.json();
-  const data = d.s === "ok" ? d.c : [];
+  const closes = d?.chart?.result?.[0]?.indicators?.quote?.[0]?.close ?? [];
+  const data = closes.filter((v) => v != null);
   candleCache.set(cKey, { data, t: Date.now() });
   return data;
 }
@@ -47,12 +47,11 @@ export default async (req) => {
 
   const cfg = await getConfig();
   const symbols = cfg.tickers.slice(0, 16);
-  const now = Math.floor(Date.now() / 1000);
 
   const [quoteResults, chart7, chart1y] = await Promise.all([
     Promise.allSettled(symbols.map((s) => fetchQuote(s, key))),
-    fetchCandles("VOO", "D", now - 10 * 86400, key).catch(() => []),
-    fetchCandles("VOO", "W", now - 365 * 86400, key).catch(() => [])
+    fetchYahooChart("VOO", "1d", "10d").catch(() => []),
+    fetchYahooChart("VOO", "1wk", "1y").catch(() => [])
   ]);
 
   const quotes = quoteResults.map((r, i) =>

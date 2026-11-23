@@ -96,7 +96,19 @@ const safe = (f) => f().catch(() => {});
 safe(loadConfig).then(() => safe(loadCal));
 setInterval(() => safe(loadConfig), 6e5);
 setInterval(() => safe(loadCal), 6e5);
+async function loadHeadlines() {
+  const d = await api("/api/headlines");
+  const el = g("headlines");
+  if (!el) return;
+  if (d.headlines && d.headlines.length)
+    el.innerHTML = d.headlines.map((h) => `<p>${esc(h)}</p>`).join("");
+  else
+    el.innerHTML = `<p style="opacity:.5">Headlines unavailable</p>`;
+}
+
 safe(loadWeather);
 setInterval(() => safe(loadWeather), 6e5);
 safe(loadStocks);
+safe(loadHeadlines);
+setInterval(() => safe(loadHeadlines), 15 * 60_000);
 })();

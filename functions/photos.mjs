@@ -1,13 +1,13 @@
 import { authed, json } from "./_lib.mjs";
 import { getStore } from "@netlify/blobs";
 
-const TOKEN = process.env.ICLOUD_ALBUM_TOKEN;
+const URL_TTL = 55 * 60_000;
 const PICK_COUNT = 5;
-const URL_TTL = 55 * 60_000; // refresh URLs before Apple's ~1h expiry
 
 let urlCache = null, urlCacheTime = 0;
 
-// iCloud shared streams API — handles Apple's non-standard 330 redirect
+// iCloud shared streams API — handles Apple's non-standard 330 redirect.
+// On 330 the body contains {"X-Apple-MMe-Host": "pXX-sharedstreams.icloud.com"}.
 async function icloudPost(path, body) {
   let host = "p23-sharedstreams.icloud.com";
   for (let i = 0; i < 3; i++) {
@@ -18,7 +18,7 @@ async function icloudPost(path, body) {
     });
     if (r.status === 330) {
       const d = await r.json();
-      host = d["X-Apple-MoveToStream"] || host;
+      host = d["X-Apple-MMe-Host"] || host;
       continue;
     }
     if (!r.ok) throw new Error(`iCloud ${path} → ${r.status}`);
@@ -29,7 +29,6 @@ async function icloudPost(path, body) {
 
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 
-// Deterministic LCG pick seeded by date string
 function seededPick(arr, count, seed) {
   const copy = [...arr];
   const result = [];
@@ -41,7 +40,7 @@ function seededPick(arr, count, seed) {
   return result;
 }
 
-// Pick the best derivative under 2 MB by file size
+// Return the checksum of the best derivative (largest fileSize under 2 MB).
 function bestChecksum(photo) {
   return Object.values(photo.derivatives || {})
     .filter((d) => d.checksum && +d.fileSize > 10_000 && +d.fileSize < 2_000_000)
@@ -50,6 +49,7 @@ function bestChecksum(photo) {
 
 export default async (req) => {
   if (!authed(req)) return json({ error: "auth" }, 401);
+  const TOKEN = process.env.ICLOUD_ALBUM_TOKEN;
   if (!TOKEN) return json({ photos: [], noKey: true });
   if (urlCache && Date.now() - urlCacheTime < URL_TTL) return json(urlCache);
 
@@ -57,25 +57,32 @@ export default async (req) => {
     const store = getStore("board");
     const today = todayStr();
 
-    // Load today's selection from Blobs (GUID + checksum pairs), or compute fresh
+    // Load today's selection (GUID + checksum pairs) from Blobs, or compute fresh.
     let sel = await store.get("photo_sel", { type: "json" }).catch(() => null);
     if (!sel || sel.date !== today) {
       const stream = await icloudPost(`/${TOKEN}/sharedstreams/webstream`, { streamCtag: null });
       const all = (stream.photos || []).filter((p) => !/video/i.test(p.mediaAssetType || ""));
       if (!all.length) throw new Error("album is empty");
       const picked = seededPick(all, PICK_COUNT, today);
-      sel = { date: today, photos: picked.map((p) => ({ guid: p.photoGuid, checksum: bestChecksum(p) })) };
+      sel = {
+        date: today,
+        photos: picked.map((p) => ({ guid: p.photoGuid, checksum: bestChecksum(p) }))
+      };
       await store.set("photo_sel", JSON.stringify(sel));
     }
 
-    // Fetch fresh CDN URLs for today's 5 GUIDs
+    // Fetch fresh CDN URLs — webasseturls response is keyed by checksum,
+    // each item has url_location + url_path that combine to the download URL.
     const guids = sel.photos.map((p) => p.guid);
     const urlData = await icloudPost(`/${TOKEN}/sharedstreams/webasseturls`, { photoGuids: guids });
+    const items = urlData.items || {};
 
     const photos = sel.photos
-      .map(({ guid, checksum }) => {
+      .map(({ checksum }) => {
         if (!checksum) return null;
-        return urlData.items?.[guid]?.derivatives?.[checksum]?.url ?? null;
+        const item = items[checksum];
+        if (!item?.url_location || !item?.url_path) return null;
+        return `https://${item.url_location}${item.url_path}`;
       })
       .filter(Boolean);
 
@@ -84,7 +91,7 @@ export default async (req) => {
     urlCacheTime = Date.now();
     return json(urlCache);
   } catch (e) {
-    if (urlCache) return json(urlCache); // serve stale on error
+    if (urlCache) return json(urlCache);
     return json({ photos: [], error: e.message });
   }
 };

@@ -21,7 +21,7 @@ display:grid;grid-template-rows:230px 300px 215px 700px 1fr;gap:16px}
 .wx .t{font-size:72px;font-weight:300}.wx .c{font-size:24px;color:var(--mut)}
 .days{display:grid;grid-template-columns:repeat(5,1fr);text-align:center;font-size:21px;gap:4px}
 .days b{display:block;font-weight:600;margin-bottom:4px}.days .i{font-size:34px}.days .p{color:#7cc4ff;font-size:18px}.days .h{color:var(--mut);font-size:18px}
-.mid{grid-template-columns:1fr 1fr}.days .hi{display:block;margin:0;font-size:24px;color:var(--tx);font-weight:600}.days .h{font-size:21px;line-height:1.25}
+.mid{grid-template-columns:1fr 1fr 1fr}.days .hi{display:block;margin:0;font-size:24px;color:var(--tx);font-weight:600}.days .h{font-size:21px;line-height:1.25}
 h4{font-size:15px;letter-spacing:2px;text-transform:uppercase;color:var(--mut);margin-bottom:10px;font-weight:600}
 .todo li{list-style:none;font-size:24px;padding:3px 0;display:flex;gap:12px;align-items:center}
 .todo li:before{content:"";width:18px;height:18px;border:2px solid var(--mut);border-radius:4px}
@@ -42,11 +42,11 @@ h4{font-size:15px;letter-spacing:2px;text-transform:uppercase;color:var(--mut);m
 .d{border-top:1px solid var(--line);padding:3px 2px;overflow:hidden;font-size:14px;min-width:0}
 .d .n{font-size:17px;color:var(--mut)}.d.today .n{background:#fff;color:#0b1730;border-radius:10px;padding:0 8px;font-weight:700}
 .ev{display:block;background:var(--c);border-radius:4px;padding:1px 5px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#07121f;font-weight:600}
-.bot{grid-template-columns:repeat(4,1fr)}
+.bot{grid-template-columns:2fr 2fr 1fr}
 .tile{padding:0;position:relative;display:flex;flex-direction:column}
 .ph{flex:1;display:flex;align-items:flex-end;padding:14px;font-size:17px;color:#fff;text-shadow:0 1px 4px #000}
 .tile h4{position:absolute;top:12px;left:14px;z-index:2;margin:0;color:#fff;text-shadow:0 1px 4px #000}
-.sp{padding:16px}.sp .px{font-size:44px;font-weight:500}.sp svg{width:100%;height:92px;display:block}.sp small{color:var(--mut);font-size:13px}
+.sp{padding:16px}.sp .px{font-size:44px;font-weight:500}.sp svg{width:100%;height:72px;display:block}.sp small{color:var(--mut);font-size:13px}
 .news{padding:16px;font-size:18px;line-height:1.3}.news p{padding:6px 0;border-bottom:1px solid var(--line)}.news p:last-child{border:0}
 .ht,.cl,.idle{display:block;font-style:normal;font-size:16px;font-weight:600;letter-spacing:2px;margin-top:6px;color:#ff9f5a}.cl{color:#7cc4ff}.idle{color:var(--mut);font-weight:400}.th-set{display:block;font-size:14px;color:var(--mut);margin-top:3px;font-weight:400;letter-spacing:0}.cdw{display:flex;flex-direction:column;padding:14px 18px}.cdr{flex:1;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);font-size:24px}.cdr b{font-size:46px;font-weight:300}.cdr small{font-size:13px;color:var(--mut);letter-spacing:2px;margin-left:6px}
 </style>
@@ -60,6 +60,7 @@ h4{font-size:15px;letter-spacing:2px;text-transform:uppercase;color:var(--mut);m
  </div>
  <div class="row mid">
   <div class="card"><h4>To Do</h4><ul class="todo" id="todo"></ul></div>
+  <div class="card sp"><h4>S&amp;P 500</h4><div class="px" id="sp-px">-- <span style="font-size:20px;color:var(--mut)">--%</span></div><small>7 DAYS</small><svg id="s7" viewBox="0 0 200 60" preserveAspectRatio="none"></svg><small>1 YEAR</small><svg id="s1" viewBox="0 0 200 60" preserveAspectRatio="none"></svg></div>
   <div class="right">
    <div class="card"><div class="facts"><div><span>SUNSET</span><b id="wx-sunset">--</b></div><div><span>MOON</span><b id="wx-moon">--</b></div><div><span>WIND</span><b id="wx-wind">--</b></div><div><span>HUMIDITY</span><b id="wx-humidity">--</b></div><div><span>PRESSURE</span><b id="wx-pressure">--</b></div><div><span>VISIBILITY</span><b id="wx-vis">--</b></div></div></div>
    <div class="card th" id="nest"><div>--°<span>1ST FLOOR</span><em class="idle">—</em></div><div>--°<span>2ND FLOOR</span><em class="idle">—</em></div></div>
@@ -70,7 +71,6 @@ h4{font-size:15px;letter-spacing:2px;text-transform:uppercase;color:var(--mut);m
  <div class="row bot">
   <div class="card tile"><h4>Photos</h4><div class="ph" style="background:linear-gradient(160deg,#f7b267,#c0576b 55%,#3b3a6b)">Shared iCloud album</div></div>
   <div class="card tile"><h4>Front Door</h4><div class="ph" style="background:linear-gradient(160deg,#35505f,#1b2b36)">Blink · updated 9:00 AM</div></div>
-  <div class="card sp"><h4>S&amp;P 500</h4><div class="px" id="sp-px">-- <span style="font-size:20px;color:var(--mut)">--%</span></div><small>7 DAYS</small><svg id="s7" viewBox="0 0 200 60" preserveAspectRatio="none"></svg><small>1 YEAR</small><svg id="s1" viewBox="0 0 200 60" preserveAspectRatio="none"></svg></div>
   <div class="card news"><h4>News</h4><div id="headlines"></div></div>
  </div>
 </div>

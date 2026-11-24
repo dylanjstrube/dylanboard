@@ -158,6 +158,23 @@ async function loadNest() {
   }).join("");
 }
 
+let photoUrls = [], photoIdx = 0;
+async function loadPhotos() {
+  const d = await api("/api/photos");
+  if (d.photos && d.photos.length) photoUrls = d.photos;
+}
+function showPhoto() {
+  if (!photoUrls.length) return;
+  const el = g("photo-bg");
+  if (!el) return;
+  el.style.backgroundImage = `url('${photoUrls[photoIdx]}')`;
+  photoIdx = (photoIdx + 1) % photoUrls.length;
+}
+
+safe(loadPhotos).then(() => showPhoto());
+setInterval(showPhoto, 10 * 60_000);
+setInterval(() => safe(loadPhotos), 60 * 60_000);
+
 safe(loadHeadlines);
 setInterval(() => safe(loadHeadlines), 15 * 60_000);
 safe(loadTodos);

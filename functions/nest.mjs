@@ -41,11 +41,18 @@ export default async (req) => {
     const thermostats = (d.devices || [])
       .filter((dev) => dev.type === "sdm.devices.types.THERMOSTAT")
       .map((dev) => {
-        const tr = dev.traits || {};
+        const tr   = dev.traits || {};
         const tempC = tr["sdm.devices.traits.Temperature"]?.ambientTemperatureCelsius;
         const hvac  = tr["sdm.devices.traits.ThermostatHvac"]?.status || "OFF";
         const name  = tr["sdm.devices.traits.Info"]?.customName || "";
-        return { name, temp: tempC != null ? cToF(tempC) : null, hvac };
+        const mode  = tr["sdm.devices.traits.ThermostatMode"]?.mode || "OFF";
+        const sp    = tr["sdm.devices.traits.ThermostatTemperatureSetpoint"] || {};
+        const humidity = tr["sdm.devices.traits.Humidity"]?.ambientHumidityPercent ?? null;
+        let setC = null;
+        if (mode === "HEAT")     setC = sp.heatCelsius;
+        else if (mode === "COOL")     setC = sp.coolCelsius;
+        else if (mode === "HEATCOOL") setC = sp.heatCoolLow;
+        return { name, temp: tempC != null ? cToF(tempC) : null, hvac, set: setC != null ? cToF(setC) : null, humidity };
       });
     nestCache = { thermostats };
     nestCacheTime = Date.now();

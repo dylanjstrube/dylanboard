@@ -129,7 +129,8 @@ async function loadNest() {
     const hvac = t.hvac || "OFF";
     const cls  = hvac === "HEATING" ? "ht" : hvac === "COOLING" ? "cl" : "idle";
     const txt  = hvac === "HEATING" ? "🔥 HEATING" : hvac === "COOLING" ? "❄️ COOLING" : "IDLE";
-    return `<div>${t.temp != null ? t.temp + "°" : "—"}<span>${labels[i]}</span><em class="${cls}">${txt}</em></div>`;
+    const sub  = [t.set != null ? `Set ${t.set}°` : "", t.humidity != null ? `💧 ${t.humidity}%` : ""].filter(Boolean).join("  ·  ");
+    return `<div>${t.temp != null ? t.temp + "°" : "—"}<span>${labels[i]}</span>${sub ? `<span class="th-set">${sub}</span>` : ""}<em class="${cls}">${txt}</em></div>`;
   }).join("");
 }
 

@@ -14,13 +14,12 @@ try {
   }
 } catch {}
 
-const [, , PROJECT_ID] = process.argv;
-const CLIENT_ID     = process.env.GOOGLE_CLIENT_ID;
-const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const [, , PROJECT_ID, CLI_ID, CLI_SECRET] = process.argv;
+const CLIENT_ID     = CLI_ID     || process.env.GOOGLE_CLIENT_ID;
+const CLIENT_SECRET = CLI_SECRET || process.env.GOOGLE_CLIENT_SECRET;
 
 if (!PROJECT_ID || !CLIENT_ID || !CLIENT_SECRET) {
-  console.error("Usage: node scripts/get-nest-token.mjs <DEVICE_ACCESS_PROJECT_ID>");
-  console.error("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be in .env");
+  console.error("Usage: node scripts/get-nest-token.mjs <PROJECT_ID> <CLIENT_ID> <CLIENT_SECRET>");
   process.exit(1);
 }
 

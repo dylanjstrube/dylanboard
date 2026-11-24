@@ -180,6 +180,19 @@ safe(loadPhotos).then(() => showPhoto());
 setInterval(showPhoto, 10 * 60_000);
 setInterval(() => safe(loadPhotos), 60 * 60_000);
 
+async function loadCamera() {
+  const d = await api("/api/camera");
+  const el = g("cam-bg");
+  if (!el) return;
+  if (d.image) {
+    el.style.backgroundImage = `url('data:image/jpeg;base64,${d.image}')`;
+    const ts = g("cam-ts");
+    if (ts && d.timestamp) ts.textContent = d.timestamp;
+  }
+}
+safe(loadCamera);
+setInterval(() => safe(loadCamera), 30 * 60_000);
+
 safe(loadHeadlines);
 setInterval(() => safe(loadHeadlines), 15 * 60_000);
 safe(loadTodos);

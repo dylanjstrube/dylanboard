@@ -1,6 +1,13 @@
 <!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DylanBoard admin</title>
 <style>body{font:16px system-ui;background:#0b1730;color:#eef3f8;max-width:780px;margin:24px auto;padding:0 16px}h2{margin-top:28px}input,button,textarea{font:inherit;padding:8px;border-radius:8px;border:1px solid #345;background:#12233d;color:inherit}.r{display:flex;gap:6px;margin:6px 0;flex-wrap:wrap}button{cursor:pointer;background:#4fc3b8;color:#06121f;border:0;font-weight:600}input[type=color]{padding:0;width:44px}small{color:#9fb2c6}</style>
 <h1>DylanBoard admin</h1><div id="app">Loading…</div>
+<h2>Blink camera</h2>
+<div id="blink-status">Checking…</div>
+<div id="blink-login" style="display:none;margin-top:10px">
+  <div class="r"><input id="blink-email" type="email" placeholder="Blink email" size="28"><input id="blink-pass" type="password" placeholder="Password" size="20"><button onclick="blinkLogin()">Sign in</button></div>
+  <div id="blink-pin" style="display:none;margin-top:6px" class="r"><input id="blink-pin-val" placeholder="PIN from Blink" size="10"><button onclick="blinkVerify()">Verify PIN</button></div>
+</div>
+<p id="blink-msg" style="color:#9fb2c6"></p>
 <script>
 let C;const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -18,5 +25,34 @@ C.tickers=$('t').value.split(/[\s,]+/).filter(Boolean);C.countdowns=a.map((_,i)=
 function add(){grab();C.calendars.push({name:'',emoji:'📅',color:'#4fc3b8',url:''});render()}
 function del(i){grab();C.calendars.splice(i,1);render()}
 async function save(){grab();const r=await fetch('/api/config',{method:'PUT',body:JSON.stringify(C)});if(r.status===401){location='/login.html';return}$('m').textContent=r.ok?'Saved. The board updates within 10 minutes.':'Save failed'}
-init();
+
+// ── Blink ─────────────────────────────────────────────────────────────────
+async function blinkStatus(){
+  const r=await fetch('/api/blink-auth',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'status'})});
+  const d=await r.json();
+  const el=$('blink-status');
+  if(d.connected){el.innerHTML='<span style="color:#5fd38d">● Connected</span> <button onclick="blinkDisconnect()">Disconnect</button>';$('blink-login').style.display='none';$('blink-pin').style.display='none'}
+  else{el.innerHTML='<span style="color:#ff7a7a">● Not connected</span>';$('blink-login').style.display='block';$('blink-pin').style.display='none'}}
+async function blinkLogin(){
+  const email=$('blink-email').value.trim(),password=$('blink-pass').value;
+  if(!email||!password){$('blink-msg').textContent='Enter email and password';return}
+  $('blink-msg').textContent='Signing in…';
+  const r=await fetch('/api/blink-auth',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'login',email,password})});
+  const d=await r.json();
+  if(d.error){$('blink-msg').textContent='Error: '+d.error+(d.detail?' — '+d.detail:'');return}
+  if(d.requiresPin){$('blink-pin').style.display='block';$('blink-msg').textContent='Check your email or phone for a PIN from Blink.';return}
+  $('blink-msg').textContent='Connected!';blinkStatus()}
+async function blinkVerify(){
+  const pin=$('blink-pin-val').value.trim();
+  if(!pin){$('blink-msg').textContent='Enter the PIN';return}
+  $('blink-msg').textContent='Verifying…';
+  const r=await fetch('/api/blink-auth',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'verify',pin})});
+  const d=await r.json();
+  if(d.error){$('blink-msg').textContent='Error: '+d.error;return}
+  $('blink-msg').textContent='Connected!';blinkStatus()}
+async function blinkDisconnect(){
+  await fetch('/api/blink-auth',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'disconnect'})});
+  blinkStatus()}
+
+init();blinkStatus();
 </script>

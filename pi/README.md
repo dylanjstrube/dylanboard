@@ -166,7 +166,7 @@ The setup script installs only these packages on top of Raspberry Pi OS Lite:
 
 | Package | Purpose |
 |---------|---------|
-| `chromium-browser` | The kiosk browser |
+| `chromium` | The kiosk browser |
 | `xserver-xorg` + `xinit` | Minimal X11 display server |
 | `x11-xserver-utils` | `xrandr`, `xset` for rotation and blanking |
 | `openbox` | Lightweight window manager (needed to host Chromium in X) |

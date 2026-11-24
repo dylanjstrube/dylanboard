@@ -25,7 +25,7 @@ echo ""
 echo "==> Installing packages (this takes a few minutes)..."
 apt-get update -qq
 apt-get install -y --no-install-recommends \
-  chromium-browser \
+  chromium \
   xserver-xorg \
   x11-xserver-utils \
   xinit \
@@ -151,7 +151,7 @@ for i in \$(seq 1 30); do
 done
 
 while true; do
-  chromium-browser \\
+  chromium \\
     --kiosk \\
     --noerrdialogs \\
     --disable-infobars \\

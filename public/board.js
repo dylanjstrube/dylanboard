@@ -161,7 +161,12 @@ async function loadNest() {
 let photoUrls = [], photoIdx = 0;
 async function loadPhotos() {
   const d = await api("/api/photos");
-  if (d.photos && d.photos.length) photoUrls = d.photos;
+  if (d.photos && d.photos.length) {
+    photoUrls = d.photos;
+  } else if (d.loading) {
+    // Cron hasn't run yet; retry in 5 minutes.
+    setTimeout(() => safe(loadPhotos), 5 * 60_000);
+  }
 }
 function showPhoto() {
   if (!photoUrls.length) return;

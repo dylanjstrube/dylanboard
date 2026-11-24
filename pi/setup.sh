@@ -162,6 +162,7 @@ while true; do
     --disable-features=TranslateUI \\
     --disable-session-crashed-bubble \\
     --disable-restore-session-state \\
+    --test-type \
     --password-store=basic \\
     --user-data-dir="\$PROFILE_DIR" \\
     --window-size=1080,1920 \\

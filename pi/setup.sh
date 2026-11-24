@@ -151,7 +151,7 @@ for i in \$(seq 1 30); do
 done
 
 while true; do
-  chromium \\
+  /usr/lib/chromium/chromium \\
     --kiosk \\
     --noerrdialogs \\
     --disable-infobars \\
@@ -162,7 +162,9 @@ while true; do
     --disable-features=TranslateUI \\
     --disable-session-crashed-bubble \\
     --disable-restore-session-state \\
-    --test-type \
+    --test-type \\
+    --disable-gpu \\
+    --no-sandbox \\
     --password-store=basic \\
     --user-data-dir="\$PROFILE_DIR" \\
     --window-size=1080,1920 \\

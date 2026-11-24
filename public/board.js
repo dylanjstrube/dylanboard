@@ -119,8 +119,24 @@ async function loadTodos() {
     el.innerHTML = `<li style="opacity:.5">No tasks</li>`;
 }
 
+async function loadNest() {
+  const d = await api("/api/nest");
+  const el = g("nest");
+  if (!el || d.noKey) return;
+  if (!d.thermostats || !d.thermostats.length) return;
+  const labels = ["1ST FLOOR", "2ND FLOOR"];
+  el.innerHTML = d.thermostats.slice(0, 2).map((t, i) => {
+    const hvac = t.hvac || "OFF";
+    const cls  = hvac === "HEATING" ? "ht" : hvac === "COOLING" ? "cl" : "idle";
+    const txt  = hvac === "HEATING" ? "🔥 HEATING" : hvac === "COOLING" ? "❄️ COOLING" : "IDLE";
+    return `<div>${t.temp != null ? t.temp + "°" : "—"}<span>${labels[i]}</span><em class="${cls}">${txt}</em></div>`;
+  }).join("");
+}
+
 safe(loadHeadlines);
 setInterval(() => safe(loadHeadlines), 15 * 60_000);
 safe(loadTodos);
 setInterval(() => safe(loadTodos), 5 * 60_000);
+safe(loadNest);
+setInterval(() => safe(loadNest), 5 * 60_000);
 })();

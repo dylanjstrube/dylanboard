@@ -226,6 +226,7 @@ async function runPKCEFlow(email, password, hardwareId, pin) {
   const tierR = await rawRequest("rest-prod.immedia-semi.com", "/api/v1/users/tier_info", {
     headers: { authorization: `Bearer ${tokenData.access_token}`, "user-agent": TOKEN_UA },
   });
+  console.log(`blink-auth tier_info → ${tierR.status}:`, tierR.body.slice(0, 400));
   const tierData = tierR.status === 200 ? JSON.parse(tierR.body) : {};
 
   return {
@@ -235,8 +236,8 @@ async function runPKCEFlow(email, password, hardwareId, pin) {
       accessToken: tokenData.access_token,
       refreshToken: tokenData.refresh_token,
       expiresAt: Date.now() + (tokenData.expires_in ?? 3600) * 1000,
-      accountId: tierData?.account?.id ?? null,
-      tier: tierData?.account?.tier ?? "prod",
+      accountId: tierData?.account_id ?? null,
+      tier: tierData?.tier ?? "prod",
     },
   };
 }

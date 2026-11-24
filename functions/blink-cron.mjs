@@ -9,12 +9,17 @@ function base(tier) {
   return `https://rest-${tier || "prod"}.immedia-semi.com`;
 }
 
-function blinkHeaders(accessToken) {
-  return {
-    "content-type": "application/json",
-    authorization: `Bearer ${accessToken}`,
-    "user-agent": TOKEN_UA,
-  };
+function blinkFetch(url, token, opts = {}) {
+  return fetch(url, {
+    ...opts,
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${token}`,
+      "user-agent": TOKEN_UA,
+      ...(opts.headers || {}),
+    },
+    signal: AbortSignal.timeout(15_000),
+  });
 }
 
 async function refreshToken(auth, s) {
@@ -30,11 +35,10 @@ async function refreshToken(auth, s) {
     }).toString(),
     signal: AbortSignal.timeout(15_000),
   });
-  if (!r.ok) return null;
+  if (!r.ok) { console.log(`blink-cron: token refresh failed ${r.status}`); return null; }
   const data = await r.json().catch(() => null);
   if (!data?.access_token) return null;
 
-  // Re-fetch tier info if accountId is missing
   let { accountId, tier } = auth;
   if (!accountId) {
     const tr = await fetch(TIER_URL, {
@@ -43,8 +47,8 @@ async function refreshToken(auth, s) {
     });
     if (tr.ok) {
       const td = await tr.json().catch(() => ({}));
-      accountId = td?.account?.id ?? null;
-      tier = td?.account?.tier ?? tier;
+      accountId = td?.account_id ?? null;
+      tier = td?.tier ?? tier;
     }
   }
 
@@ -60,94 +64,117 @@ async function refreshToken(auth, s) {
   return updated;
 }
 
+function findCamera(data) {
+  for (const cam of [].concat(data?.cameras ?? [])) {
+    const name = cam?.name || cam?.device?.name;
+    if (name === CAMERA_NAME) return cam;
+  }
+  for (const net of [].concat(data?.networks ?? [])) {
+    for (const cam of [].concat(net?.cameras ?? [])) {
+      const name = cam?.name || cam?.device?.name;
+      if (name === CAMERA_NAME) return cam;
+    }
+  }
+  return null;
+}
+
+async function getHomescreen(B, accountId, token) {
+  const r = await blinkFetch(`${B}/api/v3/accounts/${accountId}/homescreen`, token);
+  if (!r.ok) { console.log(`blink-cron: homescreen → ${r.status}`); return null; }
+  return r.json();
+}
+
+async function downloadThumb(path, token, B) {
+  let url = path.startsWith("http") ? path : `${B}${path}`;
+  if (!url.match(/\.(jpg|jpeg|png)(\?|$)/i)) url += ".jpg";
+  const r = await blinkFetch(url, token);
+  if (!r.ok) { console.log(`blink-cron: thumbnail download → ${r.status}`); return null; }
+  return r.arrayBuffer();
+}
+
 export default async () => {
   const s = getStore("board");
   let auth = await s.get("blink_auth", { type: "json" }).catch(() => null);
 
-  if (!auth?.accessToken) {
-    console.log("blink-cron: not authenticated, skipping");
-    return;
-  }
+  if (!auth?.accessToken) { console.log("blink-cron: not authenticated, skipping"); return; }
 
-  // Refresh token if expired or expiring within 5 minutes
   if (!auth.expiresAt || Date.now() > auth.expiresAt - 5 * 60_000) {
     auth = await refreshToken(auth, s);
     if (!auth) { console.log("blink-cron: token refresh failed"); return; }
   }
 
   if (!auth.accountId) {
-    console.log("blink-cron: no accountId, skipping (re-authenticate in admin)");
+    console.log("blink-cron: no accountId — re-authenticate in admin");
     return;
   }
 
   try {
     const B = base(auth.tier);
-
-    // Fetch the most recent media page (page 1 = newest first)
-    const r = await fetch(`${B}/api/v1/accounts/${auth.accountId}/media/changed`, {
-      method: "POST",
-      headers: blinkHeaders(auth.accessToken),
-      body: JSON.stringify({ since: "2001-01-01T00:00:00+0000", page: 1 }),
-      signal: AbortSignal.timeout(15_000),
-    });
-
-    if (r.status === 401) {
-      auth = await refreshToken(auth, s);
-      if (!auth) { console.log("blink-cron: re-auth failed"); return; }
-      // retry once
-      const r2 = await fetch(`${B}/api/v1/accounts/${auth.accountId}/media/changed`, {
-        method: "POST",
-        headers: blinkHeaders(auth.accessToken),
-        body: JSON.stringify({ since: "2001-01-01T00:00:00+0000", page: 1 }),
-        signal: AbortSignal.timeout(15_000),
-      });
-      if (!r2.ok) { console.log(`blink-cron: still failing after refresh: ${r2.status}`); return; }
-    }
-    if (!r.ok) throw new Error(`media/changed → ${r.status}`);
-
-    const data = await r.json();
-    const items = (data.media || []).filter(
-      (m) => m.device_name === CAMERA_NAME && m.thumbnail && !m.deleted
-    );
-
-    if (!items.length) {
-      console.log(`blink-cron: no media for "${CAMERA_NAME}"`);
-      return;
-    }
-
-    // Newest first (API returns newest first, but sort to be safe)
-    items.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    const latest = items[0];
-
-    // Build thumbnail URL — sometimes it's a full URL, sometimes a path
-    let thumbUrl = latest.thumbnail;
-    if (!thumbUrl.startsWith("http")) thumbUrl = `${B}${thumbUrl}`;
-    // Blink thumbnails need .jpg appended if not already present
-    if (!thumbUrl.includes(".jpg") && !thumbUrl.includes(".jpeg")) thumbUrl += ".jpg";
-
-    // Check if we already have this one stored
     const meta = await s.get("blink_meta", { type: "json" }).catch(() => null);
-    if (meta?.createdAt === latest.created_at) {
-      console.log("blink-cron: no new motion event");
+
+    // ── Step 1: homescreen — get camera ID and network ID ─────────────────────
+    let hsData = await getHomescreen(B, auth.accountId, auth.accessToken);
+    if (!hsData) {
+      auth = await refreshToken(auth, s);
+      if (!auth) return;
+      hsData = await getHomescreen(B, auth.accountId, auth.accessToken);
+      if (!hsData) return;
+    }
+    const cam = findCamera(hsData);
+    if (!cam) {
+      const names = [].concat(hsData?.cameras ?? []).map(c => c?.name).filter(Boolean);
+      console.log(`blink-cron: "${CAMERA_NAME}" not found. Available: ${names.join(", ") || "(none)"}`);
+      return;
+    }
+    const networkId = cam.network_id;
+    const cameraId  = cam.id ?? cam.camera_id;
+
+    // ── Step 2: request a fresh snapshot from the camera ──────────────────────
+    // POST /network/{nid}/camera/{cid}/thumbnail tells the camera to wake up,
+    // take a still, and upload it to Blink. Free plan supports this.
+    let snapUpdatedAt = null;
+    if (networkId && cameraId) {
+      const snapR = await blinkFetch(
+        `${B}/network/${networkId}/camera/${cameraId}/thumbnail`,
+        auth.accessToken,
+        { method: "POST" },
+      );
+      if (snapR.ok) {
+        const snapData = await snapR.json().catch(() => ({}));
+        snapUpdatedAt = snapData?.updated_at ?? null;
+        console.log(`blink-cron: snapshot requested updated_at=${snapUpdatedAt}`);
+        // Wait for camera to respond and upload its still (usually 5–10 s)
+        await new Promise(r => setTimeout(r, 8000));
+      } else {
+        console.log(`blink-cron: snapshot request → ${snapR.status}`);
+      }
+    }
+
+    // If the snapshot command's updated_at matches what we last saved, the
+    // camera hasn't taken a new shot since our last run — skip the download.
+    if (snapUpdatedAt && meta?.snapUpdatedAt === snapUpdatedAt) {
+      console.log("blink-cron: snapshot unchanged");
       return;
     }
 
-    // Download the JPEG thumbnail
-    const img = await fetch(thumbUrl, {
-      headers: { authorization: `Bearer ${auth.accessToken}`, "user-agent": TOKEN_UA },
-      signal: AbortSignal.timeout(15_000),
-    });
-    if (!img.ok) throw new Error(`thumbnail download → ${img.status}`);
+    // ── Step 3: re-read homescreen for the updated thumbnail URL ─────────────
+    const hs2 = await getHomescreen(B, auth.accountId, auth.accessToken);
+    const cam2 = hs2 ? findCamera(hs2) : cam;
+    const thumbPath = cam2?.thumbnail || cam2?.thumbnail_url || cam?.thumbnail;
+    if (!thumbPath) { console.log("blink-cron: no thumbnail on camera"); return; }
 
-    const buf = await img.arrayBuffer();
+    // ── Step 4: download and store ────────────────────────────────────────────
+    const buf = await downloadThumb(thumbPath, auth.accessToken, B);
+    if (!buf) return;
     await s.set("blink_image", buf, { metadata: { type: "image/jpeg" } });
+    const thumbUrl = thumbPath.startsWith("http") ? thumbPath : `${B}${thumbPath}`;
     await s.set("blink_meta", JSON.stringify({
-      createdAt: latest.created_at,
-      cameraName: latest.device_name,
+      thumbUrl,
+      snapUpdatedAt,
+      cameraName: cam2?.name || CAMERA_NAME,
       updatedAt: Date.now(),
     }));
-
-    console.log(`blink-cron: saved thumbnail from ${latest.created_at}`);
+    console.log(`blink-cron: saved thumbnail (${buf.byteLength} bytes)`);
   } catch (e) {
     console.error("blink-cron error:", e.message);
   }

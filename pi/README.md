@@ -50,21 +50,15 @@ This turns a fresh Raspberry Pi Zero 2 W into a dedicated kiosk that loads your 
 
 ## Step 3 — Run the setup script
 
-From the SSH session, run **one of the following**:
+> **Note:** the process substitution form (`bash <(curl ...)`) does not work with `sudo` on Pi OS. Download the script first, then run it.
 
-**Option A — Run directly from GitHub (once the repo is public):**
 ```bash
-BOARD_URL=https://your-site.netlify.app \
-  bash <(curl -fsSL https://raw.githubusercontent.com/dylanjstrube/dylanboard/main/pi/setup.sh)
+curl -fsSL https://raw.githubusercontent.com/dylanjstrube/dylanboard/main/pi/setup.sh -o setup.sh
 ```
 
-**Option B — Clone the repo first:**
 ```bash
-git clone https://github.com/dylanjstrube/dylanboard.git
-BOARD_URL=https://your-site.netlify.app bash dylanboard/pi/setup.sh
+BOARD_URL=https://dylanboard.netlify.app sudo -E bash setup.sh
 ```
-
-Replace `https://your-site.netlify.app` with your actual Netlify URL.
 
 The script takes **5–10 minutes** (mostly package downloads). Watch for any red errors; the last line should say `Setup complete`.
 
@@ -82,26 +76,76 @@ After ~60 seconds, Chromium will start automatically in portrait kiosk mode and 
 
 ## Step 5 — Log in to DylanBoard (one time)
 
-The first time Chromium opens, it will show the DylanBoard login page. You need to enter the board password once. After that the 180-day session cookie keeps the Pi logged in automatically.
+The Pi browser has no session cookie until you log in once. The 180-day cookie then keeps it logged in through reboots automatically.
 
-**How to reach the login page on a kiosk display with no keyboard:**
+**Option A — Physical keyboard/mouse (easiest)**
 
-Option A — Plug a USB keyboard into the Pi via a micro-USB OTG adapter, press `Ctrl+Alt+F2` to open a second terminal, log in, and enter:
-```bash
-DISPLAY=:0 xdg-open https://your-site.netlify.app/login.html
-```
+Plug a USB keyboard+mouse into the Pi's **USB data port** (the middle micro-USB port — not the PWR port nearest the corner). The board will show the login page. Type your password and submit.
 
-Option B — From your Mac, open the site in your own browser, log in there, and confirm it works. Then on the Pi:
-```bash
-ssh dylan@dylanboard.local
-DISPLAY=:0 chromium-browser --kiosk https://your-site.netlify.app/login.html &
-```
+> ⚠️ Pi Zero 2 W USB ports: the port nearest the board edge is **PWR only**. The middle port is the **USB data port** that accepts keyboards, mice, and OTG adapters.
 
-After logging in once and seeing the board, you're done. The Pi stays logged in.
+**Option B — Inject the session cookie via SSH**
+
+If you have no keyboard, use `curl` from the Pi's SSH session to log in and inject the cookie directly into Chromium's profile:
+
+1. Kill Chromium:
+   ```bash
+   pkill -f chromium; sleep 2
+   ```
+
+2. Get a session cookie (replace `YOURPASSWORD`):
+   ```bash
+   curl -c /tmp/cookies.txt -X POST https://dylanboard.netlify.app/api/login \
+     -H "Content-Type: application/json" \
+     -d '{"password":"YOURPASSWORD"}' -v 2>&1 | grep -i 'set-cookie\|< HTTP'
+   ```
+   Copy the long token value from the `set-cookie: board=…` line.
+
+3. Write the cookie into Chromium's database (replace `TOKEN_VALUE` with the value you copied):
+   ```bash
+   python3 << 'EOF'
+   import sqlite3, time, os
+   db = os.path.expanduser("~/.config/chromium-kiosk/Default/Cookies")
+   cookie_value = "TOKEN_VALUE"
+   epoch_offset = 11644473600 * 1000000
+   now = int(time.time() * 1000000) + epoch_offset
+   expires = now + (15552000 * 1000000)
+   con = sqlite3.connect(db)
+   cur = con.cursor()
+   cur.execute("DELETE FROM cookies WHERE host_key='dylanboard.netlify.app' AND name='board'")
+   cur.execute("""INSERT INTO cookies
+     (creation_utc,host_key,top_frame_site_key,name,value,encrypted_value,
+      path,expires_utc,is_secure,is_httponly,last_access_utc,has_expires,
+      is_persistent,priority,samesite,source_scheme,source_port,
+      last_update_utc,source_type,has_cross_site_ancestor)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+     (now,"dylanboard.netlify.app","","board",cookie_value,b"",
+      "/",expires,1,1,now,1,1,1,1,2,443,now,0,0))
+   con.commit(); con.close()
+   print("Cookie written successfully")
+   EOF
+   ```
+
+4. Reboot:
+   ```bash
+   sudo reboot
+   ```
 
 ---
 
 ## Troubleshooting
+
+### Clock shows wrong date after reboot
+The Pi Zero 2 W has no battery-backed RTC. It syncs time via NTP on boot. If the date is wrong, check sync status:
+```bash
+timedatectl
+```
+If `NTP service: inactive`, enable it:
+```bash
+sudo timedatectl set-ntp true
+sudo systemctl restart systemd-timesyncd
+```
+The clock corrects itself within a minute once the network is up.
 
 ### Display is upside-down
 Edit the autostart file and change `left` to `right`:
@@ -112,11 +156,16 @@ nano ~/.config/openbox/autostart
 ```
 Then restart X: `sudo reboot`
 
-### Chromium won't start / black screen
-Check the X11 log:
+### Chromium won't start / white or black screen
+Check the X11 and Chromium logs:
 ```bash
 cat /tmp/x11.log
 cat /tmp/chromium.log
+```
+Multiple Chromium instances competing for RAM (512 MB on Pi Zero 2 W) will cause white screens. Kill all instances and let only the kiosk.sh loop run:
+```bash
+pkill -f chromium
+sudo reboot
 ```
 
 ### Display is 1080×1920 but the board content is small or misaligned

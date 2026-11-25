@@ -191,8 +191,15 @@ async function loadCamera() {
     if (ts && d.timestamp) ts.textContent = d.timestamp;
   }
 }
+// blink-cron runs at :00, :10, :20… and saves ~10–20 s later; check 1 minute after each run.
+function scheduleCamera() {
+  const n = new Date();
+  let wait = 60_000 - ((n.getMinutes() % 10) * 60_000 + n.getSeconds() * 1000 + n.getMilliseconds());
+  if (wait <= 0) wait += 10 * 60_000;
+  setTimeout(() => safe(loadCamera).then(scheduleCamera), wait);
+}
 safe(loadCamera);
-setInterval(() => safe(loadCamera), 5 * 60_000);
+scheduleCamera();
 
 safe(loadHeadlines);
 setInterval(() => safe(loadHeadlines), 15 * 60_000);

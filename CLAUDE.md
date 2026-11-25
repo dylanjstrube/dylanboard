@@ -46,7 +46,7 @@ functions/
   photos-cron.mjs         Scheduled every 2h — fetches iCloud album manifest into Blobs
   camera.mjs              GET /api/camera (reads Blink JPEG from Blobs)
   blink-auth.mjs          POST /api/blink-auth (Blink OAuth v2 PKCE login/verify/status/disconnect)
-  blink-cron.mjs          Scheduled every 5min — requests on-demand Blink snapshot, downloads thumbnail
+  blink-cron.mjs          Scheduled every 10 min — requests on-demand Blink snapshot, downloads thumbnail
   admin-seed-photos.mjs   Dev-only endpoint to seed photo_meta Blob locally
 public/
   index.html              The board (approved design, some inline sample data remains)
@@ -69,7 +69,7 @@ All widgets are built and tested locally. The site has not been deployed to prod
 | Calendar | ✅ Live | iCal feeds; URLs set in admin. Currently empty (no URLs configured locally) |
 | Photos | ✅ Live | iCloud shared album; needs ICLOUD_ALBUM_TOKEN |
 | Headlines | ✅ Live | BBC RSS, no key; falls back gracefully |
-| Blink camera | ✅ Live | On-demand snapshots every 5 min; Blink login via admin page |
+| Blink camera | ✅ Live | On-demand snapshots every 10 min; Blink login via admin page |
 | Countdowns | ✅ Live | Days only; from config |
 | S&P sparklines | ✅ Live | 7-day and 1-year charts via Yahoo Finance |
 
@@ -152,7 +152,7 @@ iCloud shared album (undocumented web API). `ICLOUD_ALBUM_TOKEN` is the token at
 BBC RSS (`https://feeds.bbci.co.uk/news/rss.xml`). No key. No setup. Falls back to empty with no crash. Changed from CNN (CNN's RSS is unreliable).
 
 ### Blink camera
-Full OAuth v2 PKCE flow implemented in `blink-auth.mjs`. Dylan logs in via `/admin.html` — the page handles email/password entry and the 2FA PIN. Tokens are stored in the `blink_auth` Blob. `blink-cron.mjs` runs every 5 minutes:
+Full OAuth v2 PKCE flow implemented in `blink-auth.mjs`. Dylan logs in via `/admin.html` — the page handles email/password entry and the 2FA PIN. Tokens are stored in the `blink_auth` Blob. `blink-cron.mjs` runs every 10 minutes (6 am–11 pm Chicago):
 1. Gets camera info from homescreen API (`GET /api/v3/accounts/{id}/homescreen`).
 2. Requests an on-demand snapshot (`POST /network/{nid}/camera/{cid}/thumbnail`) — confirmed working on free plan.
 3. Waits 8 seconds for the camera to respond.
@@ -170,7 +170,7 @@ The `blink_auth` Blob is refreshed automatically; re-auth is only needed if the 
 | S&P charts | 15 min | Included in `/api/stocks` response |
 | To Do | 5 min | `/api/todos` |
 | Nest | 5 min | `/api/nest` |
-| Blink camera | 5 min | `/api/camera?t=timestamp` (cache-busted) |
+| Blink camera | 1 min after each 10-min cron run | `/api/camera?t=timestamp`; label shows the camera capture time |
 | Photos | Slideshow: 10 min per slide; manifest: 1 hr | `/api/photos` |
 | Headlines | 15 min | `/api/headlines` |
 
@@ -210,7 +210,7 @@ netlify functions:invoke photos-cron
 **Data that must be re-configured after a fresh deploy (not in git):**
 - Calendar URLs (via admin.html)
 - Blink credentials (via admin.html)
-- All Blobs are empty on a fresh account; `blink_image` / `blink_meta` populate within 5 minutes of Blink login; `photo_meta` within 2 hours.
+- All Blobs are empty on a fresh account; `blink_image` / `blink_meta` populate within 10 minutes of Blink login; `photo_meta` within 2 hours.
 
 ## 13. Pi kiosk setup (TODO)
 
@@ -220,6 +220,6 @@ Steps needed: Chromium in kiosk mode, auto-start on boot, screen rotated portrai
 
 1. Final emoji + colors for the two soccer calendars.
 2. Which Google Tasks list to show (configure `GOOGLE_TASKS_LIST_ID`).
-3. Is Squirrel Box wired or battery-powered? (5-min cron wakes it every cycle; could drain a battery camera faster.)
+3. Is Squirrel Box wired or battery-powered? (10-min cron wakes it every cycle; could drain a battery camera faster.)
 4. Night dimming mode?
 5. Pi kiosk setup — when is this needed?

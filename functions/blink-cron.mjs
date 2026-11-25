@@ -84,6 +84,9 @@ async function getHomescreen(B, accountId, token) {
   return r.json();
 }
 
+// Blink thumbnail URLs carry the capture time as ?ts=<unix seconds>.
+const captureTs = (path) => +(String(path || "").match(/[?&]ts=(\d+)/)?.[1] || 0);
+
 async function downloadThumb(path, token, B) {
   let url = path.startsWith("http") ? path : `${B}${path}`;
   if (!url.match(/\.(jpg|jpeg|png)(\?|$)/i)) url += ".jpg";
@@ -138,6 +141,7 @@ export default async () => {
     // POST /network/{nid}/camera/{cid}/thumbnail tells the camera to wake up,
     // take a still, and upload it to Blink. Free plan supports this.
     let snapUpdatedAt = null;
+    const requestedAt = Math.floor(Date.now() / 1000);
     if (networkId && cameraId) {
       const snapR = await blinkFetch(
         `${B}/network/${networkId}/camera/${cameraId}/thumbnail`,
@@ -163,10 +167,24 @@ export default async () => {
     }
 
     // ── Step 3: re-read homescreen for the updated thumbnail URL ─────────────
-    const hs2 = await getHomescreen(B, auth.accountId, auth.accessToken);
-    const cam2 = hs2 ? findCamera(hs2) : cam;
-    const thumbPath = cam2?.thumbnail || cam2?.thumbnail_url || cam?.thumbnail;
+    const readThumb = async () => {
+      const hs = await getHomescreen(B, auth.accountId, auth.accessToken);
+      const c = hs ? findCamera(hs) : null;
+      return { c, path: c?.thumbnail || c?.thumbnail_url || null };
+    };
+    let { c: cam2, path: thumbPath } = await readThumb();
+    // The camera sometimes needs longer than 8 s to upload; retry once.
+    if (thumbPath && captureTs(thumbPath) && captureTs(thumbPath) < requestedAt - 30) {
+      console.log("blink-cron: thumbnail not updated yet, retrying in 8 s");
+      await new Promise(r => setTimeout(r, 8000));
+      ({ c: cam2, path: thumbPath } = await readThumb());
+    }
+    thumbPath = thumbPath || cam?.thumbnail;
     if (!thumbPath) { console.log("blink-cron: no thumbnail on camera"); return; }
+    const capturedAt = captureTs(thumbPath) * 1000 || null;
+    if (capturedAt && capturedAt / 1000 < requestedAt - 30) {
+      console.log(`blink-cron: camera did not take a new still (latest ${new Date(capturedAt).toISOString()})`);
+    }
 
     // ── Step 4: download and store ────────────────────────────────────────────
     const buf = await downloadThumb(thumbPath, auth.accessToken, B);
@@ -176,6 +194,7 @@ export default async () => {
     await s.set("blink_meta", JSON.stringify({
       thumbUrl,
       snapUpdatedAt,
+      capturedAt,
       cameraName: cam2?.name || CAMERA_NAME,
       updatedAt: Date.now(),
     }));

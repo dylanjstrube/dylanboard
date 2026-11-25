@@ -12,9 +12,8 @@ export default async (req) => {
   if (!imgBuf) return json({ image: null, noImage: true });
 
   const b64 = Buffer.from(imgBuf).toString("base64");
-  const tsMs = meta?.eventTs ? new Date(meta.eventTs).getTime()
-    : meta?.createdAt ? new Date(meta.createdAt).getTime()
-    : meta?.updatedAt ? meta.updatedAt : null;
+  const urlTs = +(String(meta?.thumbUrl || "").match(/[?&]ts=(\d+)/)?.[1] || 0) * 1000;
+  const tsMs = meta?.capturedAt || urlTs || meta?.updatedAt || null;
   const ts = tsMs
     ? new Intl.DateTimeFormat("en-US", {
         timeZone: "America/Chicago",

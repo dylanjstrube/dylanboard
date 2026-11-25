@@ -76,7 +76,7 @@ h4{font-size:15px;letter-spacing:2px;text-transform:uppercase;color:var(--mut);m
 </div>
 <script>
 const $=id=>document.getElementById(id);
-function fit(){const pi=/Linux aarch64/.test(navigator.userAgent);const s=Math.min(innerWidth/1080,innerHeight/1920,pi?0.88:1);$('stage').style.transform='translateX(-50%) scale('+s+')'}
+function fit(){const pi=/Linux aarch64/.test(navigator.userAgent)||location.search.includes('pi=1');const s=Math.min(innerWidth/1080,innerHeight/1920,pi?0.88:1);$('stage').style.transform='translateX(-50%) scale('+s+')'}
 addEventListener('resize',fit);fit();
 const cals=[['Dylan','🏃‍♂️','#4fc3b8'],['Brooke','🐕','#f48fb1'],['Indoor Soccer','🏟️','#ffd166'],['Outdoor Soccer','⚽','#8bd17c']];
 $('legend').innerHTML=cals.map(c=>`<span style="--c:${c[2]}">${c[1]} ${c[0]}</span>`).join('');

@@ -93,6 +93,11 @@ async function downloadThumb(path, token, B) {
 }
 
 export default async () => {
+  // Skip overnight (11pm–6am America/Chicago) to avoid waking the camera at night.
+  const hour = new Date().toLocaleString("en-US", { timeZone: "America/Chicago", hour: "numeric", hour12: false });
+  const h = parseInt(hour, 10);
+  if (h >= 23 || h < 6) { console.log("blink-cron: overnight window, skipping"); return; }
+
   const s = getStore("board");
   let auth = await s.get("blink_auth", { type: "json" }).catch(() => null);
 
@@ -180,4 +185,4 @@ export default async () => {
   }
 };
 
-export const config = { schedule: "*/5 * * * *" };
+export const config = { schedule: "*/10 * * * *" };

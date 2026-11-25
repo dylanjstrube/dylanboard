@@ -5,8 +5,10 @@ export default async (req) => {
 
   const s = store();
   const [imgBuf, meta] = await Promise.all([
-    s.get("blink_image", { type: "arrayBuffer" }).catch(() => null),
-    s.get("blink_meta", { type: "json" }).catch(() => null),
+    // Strong reads: the board polls ~30 s after blink-cron writes, inside the
+    // eventual-consistency window, and could otherwise get a stale image or label.
+    s.get("blink_image", { type: "arrayBuffer", consistency: "strong" }).catch(() => null),
+    s.get("blink_meta", { type: "json", consistency: "strong" }).catch(() => null),
   ]);
 
   if (!imgBuf) return json({ image: null, noImage: true });

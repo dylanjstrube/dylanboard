@@ -1,8 +1,9 @@
 import { authed, json } from "./_lib.mjs";
 import { getStore } from "@netlify/blobs";
 
-// CDN URLs from webasseturls expire in ~6 hours; cache for 55 minutes.
-const URL_CACHE_TTL = 55 * 60_000;
+// CDN URLs from webasseturls can expire in as little as a few minutes;
+// keep the in-memory cache short so each rotation gets a fresh URL set.
+const URL_CACHE_TTL = 8 * 60_000;
 const PICK_COUNT = 5;
 
 let urlCache = null, urlCacheTime = 0;

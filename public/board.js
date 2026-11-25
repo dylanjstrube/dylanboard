@@ -177,8 +177,8 @@ function showPhoto() {
 }
 
 safe(loadPhotos).then(() => showPhoto());
-setInterval(showPhoto, 10 * 60_000);
-setInterval(() => safe(loadPhotos), 60 * 60_000);
+// Re-fetch URLs before each rotation so iCloud CDN URLs are always fresh.
+setInterval(() => safe(loadPhotos).then(() => showPhoto()), 10 * 60_000);
 
 async function loadCamera() {
   const d = await api("/api/camera?t=" + Date.now());

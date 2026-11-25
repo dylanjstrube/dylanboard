@@ -50,8 +50,8 @@ export default async (req) => {
 
   const [quoteResults, chart7, chart1y] = await Promise.all([
     Promise.allSettled(symbols.map((s) => fetchQuote(s, key))),
-    fetchYahooChart("VOO", "1d", "10d").catch(() => []),
-    fetchYahooChart("VOO", "1wk", "1y").catch(() => [])
+    fetchYahooChart("VOO", "1d", "3mo").catch(() => []),
+    fetchYahooChart("VOO", "1wk", "2y").catch(() => [])
   ]);
 
   const quotes = quoteResults.map((r, i) =>

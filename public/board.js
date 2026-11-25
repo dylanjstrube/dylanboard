@@ -52,29 +52,40 @@ function bbands(data, period = 20) {
     const sl = data.slice(i - period + 1, i + 1);
     const mean = sl.reduce((a, b) => a + b, 0) / period;
     const std = Math.sqrt(sl.reduce((a, b) => a + (b - mean) ** 2, 0) / period);
-    out.push({ i, upper: mean + 2 * std, lower: mean - 2 * std });
+    out.push({ i, mean, upper: mean + 2 * std, lower: mean - 2 * std });
   }
   return out;
 }
 
-function drawSparkline(id, data, bollinger) {
+function drawSparkline(id, data, bollinger, displayLast) {
   if (!data || data.length < 2) return;
+  // Compute BBands over full history for accurate 20-period SMA, then slice to display window
   const bands = bollinger && data.length >= 20 ? bbands(data) : null;
-  const allVals = [...data, ...(bands ? bands.flatMap((b) => [b.upper, b.lower]) : [])];
-  const mn = Math.min(...allVals), mx = Math.max(...allVals);
-  if (mn === mx) return;
-  const n = data.length;
+  const display = displayLast ? data.slice(-displayLast) : data;
+  const displayBands = bands && displayLast ? bands.slice(-displayLast) : bands;
+  const indexedBands = displayBands ? displayBands.map((b, i) => ({ i, mean: b.mean, upper: b.upper, lower: b.lower })) : null;
+
+  // Scale y to the band+price range so bands are always visible
+  const allVals = [...display, ...(indexedBands ? indexedBands.flatMap((b) => [b.upper, b.lower]) : [])];
+  const rawMn = Math.min(...allVals), rawMx = Math.max(...allVals);
+  if (rawMn === rawMx) return;
+  const pad = (rawMx - rawMn) * 0.05;
+  const mn = rawMn - pad, mx = rawMx + pad;
+
+  const n = display.length;
   const x = (i) => (i / (n - 1) * 200).toFixed(1);
   const y = (v) => (55 - (v - mn) / (mx - mn) * 50).toFixed(1);
-  const pricePts = data.map((v, i) => `${x(i)},${y(v)}`).join(" ");
+  const pricePts = display.map((v, i) => `${x(i)},${y(v)}`).join(" ");
   let svg = "";
-  if (bands && bands.length >= 2) {
-    const uPts = bands.map((b) => `${x(b.i)},${y(b.upper)}`).join(" ");
-    const lPts = bands.map((b) => `${x(b.i)},${y(b.lower)}`).join(" ");
-    const lPtsRev = [...bands].reverse().map((b) => `${x(b.i)},${y(b.lower)}`).join(" ");
-    svg += `<polygon points="${uPts} ${lPtsRev}" fill="rgba(79,195,184,.12)" stroke="none"/>`;
-    svg += `<polyline fill="none" stroke="rgba(79,195,184,.5)" stroke-width="1" points="${uPts}"/>`;
-    svg += `<polyline fill="none" stroke="rgba(79,195,184,.5)" stroke-width="1" points="${lPts}"/>`;
+  if (indexedBands && indexedBands.length >= 2) {
+    const uPts = indexedBands.map((b) => `${x(b.i)},${y(b.upper)}`).join(" ");
+    const lPts = indexedBands.map((b) => `${x(b.i)},${y(b.lower)}`).join(" ");
+    const mPts = indexedBands.map((b) => `${x(b.i)},${y(b.mean)}`).join(" ");
+    const lPtsRev = [...indexedBands].reverse().map((b) => `${x(b.i)},${y(b.lower)}`).join(" ");
+    svg += `<polygon points="${uPts} ${lPtsRev}" fill="rgba(79,195,184,.18)" stroke="none"/>`;
+    svg += `<polyline fill="none" stroke="rgba(79,195,184,.7)" stroke-width="1" points="${uPts}"/>`;
+    svg += `<polyline fill="none" stroke="rgba(79,195,184,.7)" stroke-width="1" points="${lPts}"/>`;
+    svg += `<polyline fill="none" stroke="rgba(79,195,184,.4)" stroke-width="1" stroke-dasharray="3,2" points="${mPts}"/>`;
   }
   svg += `<polyline fill="none" stroke="#5fd38d" stroke-width="2" points="${pricePts}"/>`;
   g(id).innerHTML = svg;
@@ -110,8 +121,18 @@ async function loadStocks() {
     const up = d.sp.pct >= 0;
     g("sp-px").innerHTML =
       `${d.sp.price.toFixed(2)} <span style="font-size:20px;color:var(${up ? "--up" : "--dn"})">${up ? "+" : ""}${d.sp.pct.toFixed(2)}%</span>`;
-    drawSparkline("s7", d.sp.chart7);
-    drawSparkline("s1", d.sp.chart1y, true);
+    drawSparkline("s7", d.sp.chart7, true, 7);
+    drawSparkline("s1", d.sp.chart1y, true, 52);
+    const fmtPct = (arr, last) => {
+      if (!arr || arr.length < 2) return "";
+      const slice = last ? arr.slice(-last) : arr;
+      if (slice.length < 2) return "";
+      const chg = (slice[slice.length - 1] - slice[0]) / slice[0] * 100;
+      const up = chg >= 0;
+      return `<span style="color:var(${up ? "--up" : "--dn"})">${up ? "+" : ""}${chg.toFixed(2)}%</span>`;
+    };
+    const p7 = g("s7-pct"); if (p7) p7.innerHTML = fmtPct(d.sp.chart7, 7);
+    const p1 = g("s1-pct"); if (p1) p1.innerHTML = fmtPct(d.sp.chart1y, 52);
   }
   setTimeout(() => safe(loadStocks), d.marketOpen ? 60_000 : 30 * 60_000);
 }

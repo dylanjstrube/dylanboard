@@ -47,7 +47,7 @@ h4{font-size:15px;letter-spacing:2px;text-transform:uppercase;color:var(--mut);m
 .tile{padding:0;position:relative;display:flex;flex-direction:column}
 .ph{flex:1;display:flex;align-items:flex-end;padding:14px;font-size:17px;color:#fff;text-shadow:0 1px 4px #000;background-color:#1a2a3a;background-size:cover;background-position:center}
 .tile h4{position:absolute;top:12px;left:14px;z-index:2;margin:0;color:#fff;text-shadow:0 1px 4px #000}
-.sp{padding:16px}.sp .px{font-size:44px;font-weight:500}.sp svg{width:100%;height:72px;display:block}.sp small{color:var(--mut);font-size:13px}
+.sp{padding:16px}.sp .px{font-size:44px;font-weight:500}.sp svg{width:100%;height:72px;display:block}.sp small{color:var(--mut);font-size:13px}.sp-lbl{display:flex;align-items:baseline;gap:6px}
 .news{padding:16px;font-size:18px;line-height:1.3}.news p{padding:6px 0;border-bottom:1px solid var(--line)}.news p:last-child{border:0}
 .ht,.cl,.idle{display:block;font-style:normal;font-size:13px;font-weight:600;letter-spacing:2px;margin-top:4px;color:#ff9f5a}.cl{color:#7cc4ff}.idle{color:var(--mut);font-weight:400}.th-set{display:block;font-size:12px;color:var(--mut);margin-top:2px;font-weight:400;letter-spacing:0}.cdw{display:flex;flex-direction:column;padding:14px 18px}.cdr{flex:1;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);font-size:24px}.cdr b{font-size:46px;font-weight:300}.cdr small{font-size:13px;color:var(--mut);letter-spacing:2px;margin-left:6px}
 </style>
@@ -60,7 +60,7 @@ h4{font-size:15px;letter-spacing:2px;text-transform:uppercase;color:var(--mut);m
    <div class="days" id="days"></div></div>
  </div>
  <div class="row mid">
-  <div class="card sp"><h4>S&amp;P 500</h4><div class="px" id="sp-px">-- <span style="font-size:20px;color:var(--mut)">--%</span></div><small>7 DAYS</small><svg id="s7" viewBox="0 0 200 60" preserveAspectRatio="none"></svg><small>1 YEAR</small><svg id="s1" viewBox="0 0 200 60" preserveAspectRatio="none"></svg></div>
+  <div class="card sp"><h4>S&amp;P 500</h4><div class="px" id="sp-px">-- <span style="font-size:20px;color:var(--mut)">--%</span></div><div class="sp-lbl"><small>7 DAYS</small><small id="s7-pct" style="color:var(--mut)"></small></div><svg id="s7" viewBox="0 0 200 60" preserveAspectRatio="none"></svg><div class="sp-lbl"><small>1 YEAR</small><small id="s1-pct" style="color:var(--mut)"></small></div><svg id="s1" viewBox="0 0 200 60" preserveAspectRatio="none"></svg></div>
   <div class="card tod"><h4>To Do</h4><ul class="todo" id="todo"></ul></div>
   <div class="right">
    <div class="card"><div class="facts"><div><span>SUNSET</span><b id="wx-sunset">--</b></div><div><span>MOON</span><b id="wx-moon">--</b></div><div><span>WIND</span><b id="wx-wind">--</b></div><div><span>HUMIDITY</span><b id="wx-humidity">--</b></div><div><span>PRESSURE</span><b id="wx-pressure">--</b></div><div><span>VISIBILITY</span><b id="wx-vis">--</b></div></div></div>

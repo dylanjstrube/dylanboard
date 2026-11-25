@@ -148,7 +148,27 @@ sudo systemctl restart systemd-timesyncd
 The clock corrects itself within a minute once the network is up.
 
 ### Text looks bigger or wider than on a Mac
-Check that the Inter font is installed: `fc-match Inter` should print `Inter`, not `DejaVu Sans`. If it doesn't, run `sudo apt-get install fonts-inter`, then restart Chromium.
+The board's CSS asks for the Inter font. A Mac falls back to Apple's San Francisco font, but a bare Pi has neither, so Chromium falls back to DejaVu Sans. DejaVu is much wider, which makes text wrap and look oversized.
+
+Check that Inter is installed: `fc-match Inter` should print `Inter`, not `DejaVu Sans`. If it doesn't, install it:
+```bash
+sudo apt-get install fonts-inter
+```
+If you can't use `sudo`, install it for the kiosk user only:
+```bash
+d=$(mktemp -d) && cd $d && apt-get download fonts-inter && dpkg-deb -x fonts-inter_*.deb x
+mkdir -p ~/.local/share/fonts && find x -name "*.otf" ! -iname "*italic*" -exec cp {} ~/.local/share/fonts/ \;
+fc-cache -f && cd && rm -rf $d
+```
+Then restart Chromium with `pkill -f "[c]hromium --kiosk"` (the kiosk loop relaunches it within a few seconds).
+
+How the board's fonts are set up (in `public/index.html`):
+- Body text uses **Inter**. Large text (clock, date, temperatures, countdowns, facts card values) uses **Inter Display**, Inter's more tightly spaced version for big sizes. That matches how macOS switches to SF Pro Display at large sizes.
+- **Noto Color Emoji** is listed before the system fallback font. Without that, DejaVu Sans's black-and-white glyphs win for some emoji, such as the 🌕 moon phases.
+- None of these fonts exist on a Mac, so the Mac rendering is unaffected.
+
+### Emoji look different from the Mac
+The Pi uses Google's Noto emoji and the Mac uses Apple's. Apple's emoji font only exists on Apple devices, so this difference is expected.
 
 ### Image looks soft or slightly zoomed on the TV
 Use `DISPLAY=:0 scrot /tmp/s.png` to screenshot what the Pi actually renders. If the screenshot is sharp, the TV is rescaling the image. In the TV's picture settings, set the picture size to "Just Scan", "Screen Fit", "Full Pixel" or "1:1" (the name varies by brand), and turn sharpness down to around 0.
@@ -195,6 +215,17 @@ sudo reboot
 ## Daily reload
 
 `board.js` calls `location.reload()` at ~3:00 AM each night. This picks up any new Netlify deployments and clears Chromium's memory. No configuration needed.
+
+---
+
+## Photo slideshow rotation
+
+The Photos tile shows **5 photos per day** from the iCloud shared album, changing every 10 minutes and looping through those 5 all day.
+
+- The daily set changes at **midnight Chicago time** (America/Chicago). It used to change at 6 PM because the code used the UTC date, so the evening's photos repeated the next morning. That's fixed.
+- The album is put into one fixed shuffled order, and each day takes the next 5 photos. **No photo repeats until the whole album has been shown.** With 625 photos, that's about 125 days.
+- New photos added to the album slot into that order without reshuffling it.
+- The album list is refreshed every 2 hours by `photos-cron`. To show more photos per day, change `PICK_COUNT` in `functions/photos.mjs`.
 
 ---
 

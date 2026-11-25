@@ -8,7 +8,7 @@ const pd = (x) => { const [y, m, d] = x.split("-"); return new Date(+y, m - 1, +
 function tick() {
   const d = new Date(), h = d.getHours() % 12 || 12;
   g("clk").innerHTML = `${h}:${String(d.getMinutes()).padStart(2, "0")}<small> ${d.getHours() < 12 ? "AM" : "PM"}</small>`;
-  document.querySelector(".date").textContent = d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  document.querySelector(".date").textContent = d.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
   if (d.getHours() === 3 && d.getMinutes() === 0 && d.getSeconds() < 2) location.reload();
 }
 async function loadConfig() {
@@ -38,10 +38,11 @@ async function loadCal() {
       days[i].push({ sort, html: `<span class="ev" style="--c:${esc(c.color)}">${esc(c.emoji)} ${esc(label)}</span>` });
   }
   let h = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => `<div class="hd">${d}</div>`).join("");
+  const ti = idx(new Date());
   days.forEach((list, i) => {
     const d = new Date(s); d.setDate(d.getDate() + i);
     const n = i === 0 || d.getDate() === 1 ? d.toLocaleString("en", { month: "short" }) + " " + d.getDate() : d.getDate();
-    h += `<div class="d ${i ? "" : "today"}"><span class="n">${n}</span>${list.sort((x, y) => x.sort - y.sort).map((x) => x.html).join("")}</div>`;
+    h += `<div class="d ${i === ti ? "today" : ""}"><span class="n">${n}</span>${list.sort((x, y) => x.sort - y.sort).map((x) => x.html).join("")}</div>`;
   });
   g("cal").innerHTML = h;
 }

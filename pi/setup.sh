@@ -9,7 +9,7 @@
 
 set -euo pipefail
 
-BOARD_URL="${BOARD_URL:-https://dylanboard.netlify.app?pi=1}"
+BOARD_URL="${BOARD_URL:-https://dylanboard.netlify.app}"
 KIOSK_USER="${SUDO_USER:-${USER:-pi}}"
 KIOSK_HOME=$(eval echo "~$KIOSK_USER")
 

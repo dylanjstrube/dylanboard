@@ -30,24 +30,31 @@ async function icloudPost(path, body) {
   throw new Error("iCloud redirect loop");
 }
 
-function todayStr() { return new Date().toISOString().slice(0, 10); }
+function chicagoDayNumber() {
+  const ymd = new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
+  return Math.floor(Date.parse(ymd + "T00:00:00Z") / 864e5);
+}
 
-function seededPick(arr, count, seed) {
-  const copy = [...arr];
-  const result = [];
-  let s = parseInt(seed.replace(/-/g, ""), 10) % 1_000_000_000;
-  for (let i = 0; i < count && copy.length; i++) {
-    s = (s * 1_664_525 + 1_013_904_223) & 0x7fffffff;
-    result.push(copy.splice(s % copy.length, 1)[0]);
-  }
-  return result;
+function hash(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
+  return h >>> 0;
+}
+
+// Hash order acts as a fixed shuffle that stays stable as photos are added,
+// so walking it 5 per day shows every photo once before any repeats.
+function dailyPick(arr, count, day) {
+  const order = [...arr].sort((a, b) => hash(a.guid) - hash(b.guid));
+  const start = (day * count) % order.length;
+  return Array.from({ length: Math.min(count, order.length) }, (_, i) => order[(start + i) % order.length]);
 }
 
 export default async (req) => {
   if (!authed(req)) return json({ error: "auth" }, 401);
   const TOKEN = process.env.ICLOUD_ALBUM_TOKEN;
   if (!TOKEN) return json({ photos: [], noKey: true });
-  if (urlCache && Date.now() - urlCacheTime < URL_CACHE_TTL) return json(urlCache);
+  const day = chicagoDayNumber();
+  if (urlCache && urlCache.day === day && Date.now() - urlCacheTime < URL_CACHE_TTL) return json(urlCache);
 
   try {
     const store = getStore("board");
@@ -57,7 +64,7 @@ export default async (req) => {
       return json({ photos: [], loading: true });
     }
 
-    const picked = seededPick(meta.photos, PICK_COUNT, todayStr());
+    const picked = dailyPick(meta.photos, PICK_COUNT, day);
     const guids = picked.map((p) => p.guid);
 
     const urlData = await icloudPost(`/${TOKEN}/sharedstreams/webasseturls`, { photoGuids: guids });
@@ -73,7 +80,7 @@ export default async (req) => {
       .filter(Boolean);
 
     if (!photos.length) throw new Error("no URLs resolved");
-    urlCache = { photos };
+    urlCache = { photos, day };
     urlCacheTime = Date.now();
     return json(urlCache);
   } catch (e) {

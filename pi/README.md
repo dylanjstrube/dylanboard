@@ -147,6 +147,12 @@ sudo systemctl restart systemd-timesyncd
 ```
 The clock corrects itself within a minute once the network is up.
 
+### Text looks bigger or wider than on a Mac
+Check that the Inter font is installed: `fc-match Inter` should print `Inter`, not `DejaVu Sans`. If it doesn't, run `sudo apt-get install fonts-inter`, then restart Chromium.
+
+### Image looks soft or slightly zoomed on the TV
+Use `DISPLAY=:0 scrot /tmp/s.png` to screenshot what the Pi actually renders. If the screenshot is sharp, the TV is rescaling the image. In the TV's picture settings, set the picture size to "Just Scan", "Screen Fit", "Full Pixel" or "1:1" (the name varies by brand), and turn sharpness down to around 0.
+
 ### Display is upside-down
 Edit the autostart file and change `left` to `right`:
 ```bash
@@ -222,3 +228,4 @@ The setup script installs only these packages on top of Raspberry Pi OS Lite:
 | `unclutter` | Hides the mouse cursor |
 | `xdotool` | Utility for scripting the display (optional) |
 | `fonts-noto-color-emoji` | Emoji rendering (the board uses emoji heavily) |
+| `fonts-inter` | The board's primary font; without it Chromium falls back to the much wider DejaVu Sans and text looks oversized |

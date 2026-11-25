@@ -33,6 +33,7 @@ apt-get install -y --no-install-recommends \
   unclutter \
   xdotool \
   fonts-noto-color-emoji \
+  fonts-inter \
   ca-certificates \
   curl \
   htop
